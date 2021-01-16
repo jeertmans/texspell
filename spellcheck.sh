@@ -1,3 +1,13 @@
+# Requires hunspell
+# on Ubuntu: sudo apt install hunspell
+
+# Currently, this file:
+# A - If launch without argument
+#   1) grabs all .tex files in "." directory and its sub-directories but ignore the file if name "colors.tex"
+#   2) generates a spell-checked file for each .tex file and then saves a diff of both file to highlight the spelling mistakes and their location in a nice format
+# B - If launched with argument "clean"
+#   1) removes all .diff files in "." directory and its sub-directories
+
 ignore="! -iname colors.tex"
 
 if [ "$#" -gt 1 ]; then
