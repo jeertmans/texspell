@@ -9,21 +9,46 @@
 #   1) removes all .diff files in "." directory and its sub-directories
 
 ignore="! -iname colors.tex"
+CLEAN=0
 
-if [ "$#" -gt 1 ]; then
-    echo "Illegal number of parameters"
-    exit 1
+# Flags handler
+while test $# -gt 0; do
+  case "$1" in
+    -h|--help)
+      echo "texspell-- Command line spell-checker tool for TeX documents"
+      echo " "
+      echo "Options:"
+      echo "-h, --help: get this help"
+      echo "-c, --clean: Remove all .diff in the . directiory and sub-directories"
+      echo "-v, --version: get version number"
+      echo " "
+      exit 0
+      ;;
+    -v|--verbose)
+      echo "Version: 0.1"
+      shift
+      ;;
+    -c|--clean)
+      CLEAN=1
+      shift
+      ;;
+    *)
+      echo "Unknown flag: "${1}
+      exit 1
+      ;;
+  esac
+done
+
+
+# Typechecking
+if [ $CLEAN -eq 0 ]; then
+  find . -type f -iname "*.tex" $ignore | xargs -n 1 -t -I % sh -c 'hunspell -t -U -i utf-8 % > %.temp; diff % %.temp > %.diff; rm %.temp'
+  exit 1
 fi
 
-if [ "$#" -eq 1 ]; then
-    if [ "$1" = "clean" ]; then
-    	find . -type f -iname "*.diff" | xargs -n 1 rm
-   	exit 0
-    fi
-    echo "Unknown parameter: $1"
-    exit 1
+# Clean
+if [ $CLEAN -eq 1 ]; then
+  find . -type f -iname "*.diff" | xargs -n 1 rm
+  exit 1
 fi
 
-# Generate all .diff files
-
-find . -type f -iname "*.tex" $ignore | xargs -n 1 -t -I % sh -c 'hunspell -t -U -i utf-8 % > %.temp; diff % %.temp > %.diff; rm %.temp'
