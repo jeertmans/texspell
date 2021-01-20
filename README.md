@@ -39,6 +39,7 @@ Optionnal:
 * [ ] Do not generate empty files
 * [ ] Easily ignore / naviguate from files (and know which error you are looking at)
 * [ ] Diff reporting
+* [ ] Generate hidden file that reports last program execution (so that it can propose files that were only gen. by last exec.)
 * [ ] Propose multiple correction
 * [ ] Use shasum to only check files that changed (optional)
 
