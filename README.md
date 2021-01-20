@@ -37,6 +37,9 @@ Optionnal:
 * [ ] Add mock .tex to test the tool
 * [ ] Do not explore hidden directories
 * [ ] Do not generate empty files
+* [ ] Easily ignore / naviguate from files
+* [ ] Diff reporting
+* [ ] Propose multiple correction
 
 
 ## v0.2 - publish tools
