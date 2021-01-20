@@ -10,6 +10,7 @@
 
 ignore="! -iname colors.tex"
 CLEAN=0
+SPELL=1
 
 # Flags handler
 while test $# -gt 0; do
@@ -20,16 +21,22 @@ while test $# -gt 0; do
       echo "Options:"
       echo "-h, --help: get this help"
       echo "-c, --clean: Remove all .diff in the . directiory and sub-directories"
+      echo "-o, --clean-only: Do not generate the .diff"
       echo "-v, --version: get version number"
       echo " "
       exit 0
       ;;
-    -v|--verbose)
+    -v|--version)
       echo "Version: 0.1"
       shift
       ;;
     -c|--clean)
       CLEAN=1
+      shift
+      ;;
+    -o|--clean-only)
+      CLEAN=1
+      SPELL=0
       shift
       ;;
     *)
@@ -39,16 +46,14 @@ while test $# -gt 0; do
   esac
 done
 
-
-# Typechecking
-if [ $CLEAN -eq 0 ]; then
-  find . -type f -iname "*.tex" $ignore | xargs -n 1 -t -I % sh -c 'hunspell -t -U -i utf-8 % > %.temp; diff % %.temp > %.diff; rm %.temp'
-  exit 1
-fi
-
 # Clean
 if [ $CLEAN -eq 1 ]; then
   find . -type f -iname "*.diff" | xargs -n 1 rm
-  exit 1
 fi
+
+# Typechecking
+if [ $SPELL -eq 1 ]; then
+  find . -type f -iname "*.tex" $ignore | xargs -n 1 -t -I % sh -c 'hunspell -t -U -i utf-8 % > %.temp; diff % %.temp > %.diff; rm %.temp'
+fi
+
 

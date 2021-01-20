@@ -36,6 +36,7 @@ Optionnal:
 * [ ] add verbose environment
 * [ ] Add mock .tex to test the tool
 * [ ] Do not explore hidden directories
+* [ ] Do not generate empty files
 
 
 ## v0.2 - publish tools
