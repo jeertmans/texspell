@@ -37,9 +37,10 @@ Optionnal:
 * [ ] Add mock .tex to test the tool
 * [ ] Do not explore hidden directories
 * [ ] Do not generate empty files
-* [ ] Easily ignore / naviguate from files
+* [ ] Easily ignore / naviguate from files (and know which error you are looking at)
 * [ ] Diff reporting
 * [ ] Propose multiple correction
+* [ ] Use shasum to only check files that changed (optional)
 
 
 ## v0.2 - publish tools
