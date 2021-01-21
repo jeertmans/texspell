@@ -1,3 +1,4 @@
+#! /bin/bash
 # Requires hunspell
 # on Ubuntu: sudo apt install hunspell
 
