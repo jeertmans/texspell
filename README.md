@@ -23,11 +23,11 @@ Optionnal:
 ### Generating diff files
 
 * [x] have a working spell check that generate .diff files ?
-* [ ] maybe find a better representation than .diff files ?
-* [ ] add line number
-* [ ] Propose multiple correction
-* [ ] Diff reporting
-* [ ] Do not generate empty files
+* [x] maybe find a better representation than .diff files ?
+* [x] add line number
+* [x] Propose multiple correction
+* [x] Diff reporting
+* [x] Do not generate empty files
 
 ### Command line tools
 
@@ -36,8 +36,8 @@ Optionnal:
 * [x] Add installation instruction
 * [x] Add completion on command line
 * [x] Add help
-* [ ] Make hunspell shut up
-* [ ] add verbose environment
+* [x] Make hunspell shut up
+* [x] add verbose environment
 * [ ] Use shasum to only check files that changed (optional)
 * [ ] Do not explore hidden directories (only if specified)
 
