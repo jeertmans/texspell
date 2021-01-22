@@ -106,7 +106,7 @@ if [ $SPELL -eq 1 ]; then
       done
 
       if [ $REPORT -eq 1 ]; then
-        echo $file " Errors: " $(grep -c '[\&]' $file.tmp) "Unkown words" $(grep -c '[\#]' $file.tmp) >> report_texspell
+        echo $file " Errors: " $(grep -c '[\&]' $file.tmp) "Unknown words" $(grep -c '[\#]' $file.tmp) >> report_texspell
         ERRORS=$(($ERRORS +  $(grep -c '[\&]' $file.tmp)))
         UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $(grep -c '[\#]' $file.tmp)))
         FILES=$(($FILES+1))
@@ -132,5 +132,4 @@ if [ $SPELL -eq 1 ]; then
     fi
   fi
 fi
-
 
