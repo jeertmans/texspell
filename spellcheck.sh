@@ -14,6 +14,9 @@ CLEAN=0
 SPELL=1
 VERBOSE=1
 REPORT=1
+SRC="."
+SRCISFILE=0
+TEMP_DIR=""
 
 # Flags handler
 while test $# -gt 0; do
@@ -48,15 +51,31 @@ while test $# -gt 0; do
       shift
       ;;
     *)
-      echo "Unknown flag: "${1}
+      if [ -f "$1" ]; then
+        SRCISFILE=1
+        SRC=$1
+        shift
+      elif [ -d $1 ]; then
+        SRCISFILE=0
+        SRC=$1
+        shift
+      else
+      echo "Last argument should be either a file or a directoy: "${1}
       exit 1
+      fi
       ;;
   esac
 done
 
 # Clean
 if [ $CLEAN -eq 1 ]; then
-  find . -type f -iname "*.diff" | xargs -n 1 rm
+  if [ $SRCISFILE -eq 1 ]; then
+    if [ -f $SRC.diff ]; then
+      rm $SRC.diff
+    fi
+  else
+    find $SRC -type f -iname "*.diff" | xargs -n 1 -r rm
+  fi
 fi
 
 # Typechecking
@@ -73,16 +92,22 @@ if [ $SPELL -eq 1 ]; then
     echo "Start " $(date) > report_texspell 
     echo "" >> report_texspell
   fi
+  
+  echo "Processing files..."
 
-  for file in $(find . -type f -iname "*.tex" $ignore); do
+  for file in $(find $SRC -type f -iname "*.tex" $ignore); do
     if [ $VERBOSE -ge 1 ]; then
       echo $file
     fi
 
-    hunspell -a -t -i utf-8 -d en_US <$file | grep '[\#\&]' > $file.tmp
-    sed -i '1d' $file.tmp
-    hunspell -L -i utf-8 -d en_US <$file > $file.tmp2
-    NLINES=$(wc -l $file.tmp | awk '{ print $1 }') 
+    filename=$(basename $file)
+    TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${filename}1_${date}_XXXXX.tmp")
+    TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${filename}2_${date}_XXXXX.tmp")
+
+    hunspell -a -t -i utf-8 -d en_US <$file | grep '[\#\&]' > $TMP_FILE_1
+    sed -i '1d' $TMP_FILE_1
+    hunspell -L -i utf-8 -d en_US <$file > $TMP_FILE_2
+    NLINES=$(wc -l $TMP_FILE_1 | awk '{ print $1 }') 
 
     if [ $NLINES -eq 0 ]; then
       if [ $VERBOSE -ge 1 ]; then
@@ -100,22 +125,18 @@ if [ $SPELL -eq 1 ]; then
       for (( i=1; i <= $NLINES ; i++ ))
       do
         echo "----" >> $file.diff
-        echo $(sed "${i}q;d" $file.tmp2 | grep -Fx -n -f - $file | cut -f1 -d:) >> $file.diff
-        echo $(sed "${i}q;d" $file.tmp2) >> $file.diff
-        echo $(sed "${i}q;d" $file.tmp) >> $file.diff
+        echo $(sed "${i}q;d" $TMP_FILE_2 | grep -Fx -n -f - $file | cut -f1 -d:) >> $file.diff
+        echo $(sed "${i}q;d" $TMP_FILE_2) >> $file.diff
+        echo $(sed "${i}q;d" $TMP_FILE_1) >> $file.diff
       done
 
       if [ $REPORT -eq 1 ]; then
-        echo $file " Errors: " $(grep -c '[\&]' $file.tmp) "Unknown words" $(grep -c '[\#]' $file.tmp) >> report_texspell
-        ERRORS=$(($ERRORS +  $(grep -c '[\&]' $file.tmp)))
-        UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $(grep -c '[\#]' $file.tmp)))
+        echo $file " Errors: " $(grep -c '[\&]' $TMP_FILE_1) "Unknown words" $(grep -c '[\#]' $TMP_FILE_1) >> report_texspell
+        ERRORS=$(($ERRORS +  $(grep -c '[\&]' $TMP_FILE_1)))
+        UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $(grep -c '[\#]' $TMP_FILE_1)))
         FILES=$(($FILES+1))
       fi
     fi
-
-
-    rm $file.tmp
-    rm $file.tmp2
 
   done
   if [ $REPORT -eq 1 ]; then
