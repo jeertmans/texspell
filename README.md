@@ -28,6 +28,7 @@ Optionnal:
 * [x] Propose multiple correction
 * [x] Diff reporting
 * [x] Do not generate empty files
+* [ ] Temp files and report files are generated such that they do not overwrite any existing file (`mktemp` for e.g.) or, at-least, warn for it ("Are you sure?: [Y/n]")
 
 ### Command line tools
 
