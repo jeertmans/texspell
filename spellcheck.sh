@@ -53,7 +53,20 @@ fi
 
 # Typechecking
 if [ $SPELL -eq 1 ]; then
-  find . -type f -iname "*.tex" $ignore | xargs -n 1 -t -I % sh -c 'hunspell -t -U -i utf-8 % > %.temp; diff % %.temp > %.diff; rm %.temp'
+  # Generate diff files
+  for file in $(find . -type f -iname "*.tex" $ignore); do
+    echo $file
+    hunspell -t -U -i utf-8 $file > $file.temp 
+    diff $file $file.temp > $file.diff
+    rm $file.temp
+    if [ -s $file.diff ]; then
+      echo "ok" 
+    else
+      echo $file " is empty"
+      rm $file.diff
+    fi
+  done
+  #find . -type f -iname "*.tex" $ignore | xargs -n 1 -t -I % sh -c 'hunspell -t -U -i utf-8 % > %.temp; diff % %.temp > %.diff; rm %.temp'
 fi
 
 
