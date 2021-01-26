@@ -1,12 +1,24 @@
 #! /bin/bash
 
+#############
+# Constants #
+#############
+
 # Colors
+# https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-ignore="! -iname colors.tex"
-CLEAN=0 #Remove or not .diff
-SPELL=1 #Create or not .diff
+DIFF_EXT=".diff" # Might be changed or choosed by user later... ?
+TEX_EXT=".tex"
+
+##################
+# Default values #
+##################
+
+ignore="colors.tex" # Good for testing but should be removed :)
+CLEAN=0 #Remove or not diff files
+SPELL=1 #Create or not diff files
 VERBOSE=1 # Level of verbosity
 REPORT=1 # Produce a report or not
 CHECK_HIDDEN=0 #Check or not (spell/clean) files in hidden dir/files
@@ -14,7 +26,9 @@ SRC="." # SRC to check
 SRCISFILE=0 # Is SRC a file
 TEMP_DIR=""
 
-# Flags handler
+#################
+# Flags handler #
+#################
 while test $# -gt 0; do
   case "$1" in
     -h|--help)
@@ -68,20 +82,67 @@ while test $# -gt 0; do
   esac
 done
 
-# Clean
+#########################
+# Function declarations #
+#########################
+
+# Find files
+# 1 - Source file or directory
+# 2 - Extention of file, ex.: ".tex", ".diff"
+# 3 - Binary variable (0 or 1) to say if hidden files must be included
+# + - All other files or pattern (non case-sensitive) that must be excluded
+#
+# R - All the files matching conditons
+function find_files {
+  local SRC=$1
+  local EXT=$2
+  local HID=$3
+  local IGN=""
+  while test $# -gt 3; do
+    IGN="${IGN} ! -iname $4"
+    shift
+  done
+  if [ $HID -eq 1 ]; then
+    echo $(find $SRC -type f -iname "*${EXT}" $IGN)
+  else
+    echo $(find $SRC -type f -iname "*${EXT}" $IGN -not -path "*/\.*")
+  fi
+}
+
+# Remove files
+# 1 - List of files
+#
+# R - Nothing
+function remove_files {
+  local FILES=$1
+  xargs -n 1 -r rm $FILES
+}
+
+# Remove colors from input
+# https://stackoverflow.com/questions/17998978/removing-colors-from-output
+# 1 - Input
+#
+# R - The input with colors removed
+function remove_colors {
+  local IN=$1
+  $(sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" $IN)
+}
+
+####################
+# Script execution #
+####################
+
+# Cleaning .diff files
 if [ $CLEAN -eq 1 ]; then
   if [ $SRCISFILE -eq 1 ]; then
-    if [ -f $SRC.diff ]; then
-      rm $SRC.diff
+    if [ -f "${SRC}${DIFF_EXT}" ]; then
+      rm "${SRC}${DIFF_EXT}"
     fi
   else
-    if [ $CHECK_HIDDEN -eq 1 ]; then
-      find $SRC -type f -iname "*.diff" | xargs -n 1 -r rm
-    else
-      find $SRC -not -path '*/\.*' -type f -iname "*.diff" | xargs -n 1 -r rm
-    fi
+    find_files $SRC $DIFF_EXT $CHECK_HIDDEN | remove_files 
   fi
 fi
+
 
 # Typechecking
 if [ $SPELL -eq 1 ]; then
@@ -102,11 +163,7 @@ if [ $SPELL -eq 1 ]; then
   
   FILES_LIST=()
 
-  if [ $CHECK_HIDDEN -eq 1 ]; then
-    mapfile -d $'\0' FILES_LIST < <(find $SRC -type f -iname "*.tex" $ignore)
-  else 
-    mapfile -d $'\0' FILES_LIST < <(find $SRC -not -path '*/\.*' -type f -iname "*.tex" $ignore)
-  fi
+  mapfile -d $'\0' FILES_LIST < <(find_files $SRC $TEX_EXT $CHECK_HIDDEN $ignore)
 
   for file in ${FILES_LIST[@]}; do
     if [ $VERBOSE -ge 1 ]; then
