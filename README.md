@@ -28,7 +28,7 @@ Optionnal:
 * [x] Propose multiple correction
 * [x] Diff reporting
 * [x] Do not generate empty files
-* [ ] Temp files and report files are generated such that they do not overwrite any existing file (`mktemp` for e.g.) or, at-least, warn for it ("Are you sure?: [Y/n]")
+* [x] Temp files and report files are generated such that they do not overwrite any existing file (`mktemp` for e.g.) or, at-least, warn for it ("Are you sure?: [Y/n]")
 
 ### Command line tools
 
@@ -40,7 +40,7 @@ Optionnal:
 * [x] Make hunspell shut up
 * [x] add verbose environment
 * [ ] Use shasum to only check files that changed (optional)
-* [ ] Do not explore hidden directories (only if specified)
+* [x] Do not explore hidden directories (only if specified)
 
 ### CI - Testing
 
