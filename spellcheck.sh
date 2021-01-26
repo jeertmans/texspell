@@ -1,5 +1,9 @@
 #! /bin/bash
 
+# Colors
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 ignore="! -iname colors.tex"
 CLEAN=0 #Remove or not .diff
 SPELL=1 #Create or not .diff
@@ -157,7 +161,7 @@ if [ $SPELL -eq 1 ]; then
 
   done
   if [ $REPORT -eq 1 ]; then
-    sed -i "1 aEnd $(date)"  report_texspell
+    sed -i "1 aEnd    $(date)"  report_texspell
     echo "" >> report_texspell
     echo "Errors files " $FILES >> report_texspell
     echo "Empty files: " $EMPTY_FILES >> report_texspell
