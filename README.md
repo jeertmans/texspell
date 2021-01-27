@@ -41,6 +41,8 @@ Optionnal:
 * [x] add verbose environment
 * [ ] Use shasum to only check files that changed (optional)
 * [x] Do not explore hidden directories (only if specified)
+* [ ] Add mode so than `man` command can read only documentation ? No rly useful but could be nice
+* [ ] Add color mode, e.g., by coloring errors in red and propositions in green
 
 ### CI - Testing
 
