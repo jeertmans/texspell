@@ -16,6 +16,16 @@ Optionnal:
 - Make the completion script executable `chmod +x texspell-complete.sh`
 - Add to your .bashrc/zshrc `source YOUR_INSTALL_PATH/texspell/texspell-complete.sh` and do not forget to replace `YOUR_INSTALL_PATH` by your actual install path
 
+
+# Coding style
+
+* Variable names should use capital letters and underscores only
+* Function names should use lower case letters and underscores only
+* Functions should have docstring accordingly to what is already done
+* Functions should use local variables
+* Prefer creating function if a code is often re-used
+* Code is splitted into several sections and the appropriate one should be used when writing code
+
 # todo-lists
 
 ## v0.1 - working prototype
