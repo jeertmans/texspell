@@ -25,6 +25,7 @@ Optionnal:
 * Functions should use local variables
 * Prefer creating function if a code is often re-used
 * Code is splitted into several sections and the appropriate one should be used when writing code
+* Only use "" instead of ''
 
 # todo-lists
 

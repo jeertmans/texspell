@@ -33,7 +33,7 @@ Options:\n
 ignore="colors.tex" # Good for testing but should be removed :)
 CLEAN=0 #Remove or not diff files
 SPELL=1 #Create or not diff files
-VERBOSE=1 # Level of verbosity
+VERBOSITY=1 # Level of verbosity
 REPORT=1 # Produce a report or not
 CHECK_HIDDEN=0 #Check or not (spell/clean) files in hidden dir/files
 SRC="." # SRC to check
@@ -65,6 +65,11 @@ while test $# -gt 0; do
       ;;
     --no-report)
       REPORT=0
+      shift
+      ;;
+    --verbosity)
+      VERBOSITY=$2
+      shift
       shift
       ;;
     -a|--all)
@@ -131,7 +136,7 @@ function remove_files {
 # R - The input with colors removed
 function remove_colors {
   local IN=$1
-  $(sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" $IN)
+  $(sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" $IN)
 }
 
 # Substitute regex pattern
@@ -144,11 +149,11 @@ function regex_sub {
   local STR=$1
   local PAT=$2
   local SUB=$3
-  echo $(sed -E "s/${PAT}/${SUB}/g" $STR)
+  echo $(echo "${STR}" | sed -E "s/${PAT}/${SUB}/g")
 }
 
 # Substitute regex pattern in file (in-place)
-# 1 - Input
+# 1 - Input file
 # 2 - Search pattern, ex.: "([a-zA-Z])"
 # 3 - Sub. pattern, ex.: "_\1_" to add "_" around matching patterns
 #
@@ -160,11 +165,170 @@ function regex_sub_file {
   sed -i -E "s/${PAT}/${SUB}/g" $FILE
 }
 
+# Write into a file the errors, their line number and the correction suggestions
+# 1 - Input file
+# 2 - Output file
+#
+# R - Nothing
+function errors_and_suggestions {
+  local IN=$1
+  local OUT=$2
+
+  # Run hunspell, discarding lines with no error (*)
+  hunspell -a -t -i utf-8 -d en_US <$IN | grep -v '[\*]' > $OUT
+  # Clean the first line of the file containing a header from Ispell
+  sed -i '1d' $OUT
+  # Remove extra linebreaks
+  sed -i '/^$/N;/^\n$/D' $OUT
+  
+  MATCH="&\s(\S+)\s([0-9]+)\s([0-9]+):\s(.+)"
+  SUBS="V\3: \1 => (\2) \4"
+
+  regex_sub_file $OUT "${MATCH}" "${SUBS}" 
+}
+
+# Write into a file the lines where errors occur
+# 1 - Input file
+# 2 - Ouput file
+#
+# R - Nothing
+function lines_with_errors {
+  local IN=$1
+  local OUT=$2
+  hunspell -L -t -i utf-8 -d en_US <$IN > $OUT
+}
+
+# Returns a given line from a file
+# 1 - The file
+# 2 - The line number
+#
+# R - The Ith line
+function ith_line_file {
+  local FILE=$1
+  local I=$2
+  echo "$(sed "${I}q;d" $FILE)"
+}
+
+# Return the line number of the first line matching a given string
+# 1 - The search string
+# 2 - The file
+#
+# R - The line number
+function first_match_lineno_file {
+  local MATCH=$1
+  local FILE=$2
+  #echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
+  echo $(grep -o -m 1 -h -n "${MATCH}" $FILE | cut -f1 -d:)
+
+}
+
+function report_file {
+  local FILE=$1
+  local FILENAME=$(basename $FILE)
+
+  # Generate TMP 1
+  local TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
+  errors_and_suggestions $FILE $TMP_FILE_1
+
+  
+  # Generate TMP 2
+  local TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
+  lines_with_errors $FILE $TMP_FILE_2 
+
+  if [ $VERBOSITY -ge 1 ]; then
+    echo "Proccesing" $FILE
+  fi
+
+  # Count the # of lines (errors) in file
+  local N_LINES=$(wc -l $TMP_FILE_1 | awk '{ print $1 }') 
+
+  if [ $N_LINES -eq 0 ]; then
+    if [ $VERBOSITY -ge 1 ]; then
+      echo $FILE " is empty"
+    fi
+
+    if [ $REPORT -eq 1 ]; then
+      echo $FILE " no errors" >> $REPORT_FILE
+      EMPTY_FILES=$(($EMPTY_FILES+1))
+    fi
+  else
+    local DIFF_FILE="${FILE}${DIFF_EXT}"
+    echo "Created by texspell">$DIFF_FILE
+
+    j=0
+    k=-1
+    POS=0
+    COLORIZED_LINE=""
+    COLORIZED_ERRORS=""
+    for (( i=1; i <= $N_LINES ; i++ ))
+    do
+      SUGGESTIONS=$(ith_line_file $TMP_FILE_1 $i)
+
+      if [ -z "${SUGGESTIONS}" ]; then
+        j=$((j+1))
+      else
+        if [ $j -gt $k ]; then
+
+          if [ $VERBOSITY -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
+            echo -e $COLORIZED_LINE
+            echo -e $COLORIZED_ERRORS
+            COLORIZED_LINE=""
+            COLORIZED_ERRORS=""
+            POS=0
+          fi
+
+          ERRORNOUS_LINE="$(ith_line_file $TMP_FILE_2 $j)"
+          LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" $FILE)
+
+          echo "----" >> $DIFF_FILE
+          echo "In line ${LINE_NO}:" >> $DIFF_FILE
+          echo $ERRORNOUS_LINE >> $DIFF_FILE
+          k=$j
+        fi
+        
+        echo $SUGGESTIONS >> $DIFF_FILE
+
+        if [ $VERBOSITY -ge 2 ]; then
+          MATCH="(V([0-9]+):\s)(\S+)(\s=>\s)(.+)"
+          SUBS1="\1\\${RED}\3\\${NC}\4\\${GREEN}\5\\${NC}"
+          SUBS2="\2"
+          SUBS3="\3"
+          V_POSITION=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS2}")
+          ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
+          COLORIZED_SUGG=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS1}")
+          if [ -z "$COLORIZED_ERRORS" ]; then
+            COLORIZED_ERRORS="${COLORIZED_SUGG}"
+          else
+            COLORIZED_ERRORS+="\n${COLORIZED_SUGG}"
+          fi
+          LENGTH=$((V_POSITION-POS))
+
+          COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:$LENGTH}${RED}${ERRORNOUS_WORD}${NC}"
+          POS=$((V_POSITION+${#ERRORNOUS_WORD}))
+        fi
+      fi
+    done
+    # Print last line
+    if [ $VERBOSITY -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
+      echo -e $COLORIZED_LINE
+      echo -e $COLORIZED_ERRORS
+    fi
+
+    if [ $REPORT -eq 1 ]; then
+      echo $FILE " Errors: " $(grep -c '[\&]' $TMP_FILE_1) "Unknown words" $(grep -c '[\#]' $TMP_FILE_1) >> $REPORT_FILE
+      # We could count errors in the loop (each i) but global variable doesn seem to be updated
+      ERRORS=$(($ERRORS +  $(grep -c "[=>]" $TMP_FILE_1)))
+      UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $(grep -c '[\#]' $TMP_FILE_1)))
+    fi
+  fi
+
+}
+
 ####################
 # Script execution #
 ####################
 
-# Cleaning .diff files
+# Cleaning diff files
 if [ $CLEAN -eq 1 ]; then
   if [ $SRCISFILE -eq 1 ]; then
     if [ -f "${SRC}${DIFF_EXT}" ]; then
@@ -180,90 +344,39 @@ fi
 if [ $SPELL -eq 1 ]; then
   # Generate diff files
   
-  FILES=0
   EMPTY_FILES=0
   ERRORS=0
   UNKNOWN_WORDS=0
   if [ $REPORT -eq 1 ]; then 
-    rm $REPORT_FILE
-    touch $REPORT_FILE
     echo "Start " $(date) > $REPORT_FILE 
     echo "" >> $REPORT_FILE
   fi
+    
+  FILES=$(find_files $SRC $TEX_EXT $CHECK_HIDDEN $ignore)
   
-  echo "Processing files..."
+  FILES_LIST=(`echo $FILES | sed "s/ /\n/g"`)
+  N_FILES=${#FILES_LIST[@]}
   
-  FILES_LIST=()
-
-  mapfile -d $'\0' FILES_LIST < <(find_files $SRC $TEX_EXT $CHECK_HIDDEN $ignore)
+  if [ $VERBOSITY -ge 1 ]; then
+    echo "Processing ${N_FILES} file(s)..."
+  fi
 
   for FILE in ${FILES_LIST[@]}; do
-    if [ $VERBOSE -ge 1 ]; then
-      echo $file
-    fi
-
-    FILENAME=$(basename $FILE)
-    TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_${date}_XXXXX.tmp")
-    TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_${date}_XXXXX.tmp")
-
-    hunspell -a -t -i utf-8 -d en_US <$FILE | grep -v '[\*]' > $TMP_FILE_1
-    # Whe need to clean the first line of the file containing a header from Ispell
-    sed -i '1d' $TMP_FILE_1
-    sed -i '/^$/N;/^\n$/D' $TMP_FILE_1
-    # Reformat spelling suggestion with colors:
-    # L{lineno}: {error} => ({# of sugg.}) {suggestions}
-    regex_sub_file $TMP_FILE_1 "&\s(\S+)\s([0-9]+)\s([0-9]+):\s(.+)" "L\3: \\${RED}\1\\${NC} => (\2) \\${GREEN}\4\\${NC}\n"
-    hunspell -L -t -i utf-8 -d en_US <$FILE > $TMP_FILE_2
-    NLINES=$(wc -l $TMP_FILE_1 | awk '{ print $1 }') 
-
-    if [ $NLINES -eq 0 ]; then
-      if [ $VERBOSE -ge 1 ]; then
-        echo $FILE " is empty"
-      fi
-
-      if [ $REPORT -eq 1 ]; then
-        echo $file " no errors" >> $REPORT_FILE
-        EMPTY_FILES=$(($EMPTY_FILES+1))
-      fi
-    else
-      #Erase file
-      echo -e $(cat $TMP_FILE_1)
-      cat $TMP_FILE_2
-
-      DIFF_FILE="${FILE}${DIFF_EXT}"
-      echo "Created by texspell">$DIFF_FILE
-
-      j=0
-      for (( i=1; i <= $NLINES ; i++ ))
-      do
-        if [ -z "$(sed "${i}q;d" $TMP_FILE_1)" ]; then
-          j=$((j+1))
-        else
-          echo "----" >> $DIFF_FILE
-          echo -e $(sed "${j}q;d" $TMP_FILE_2 | grep -Fx -n -f - $FILE | cut -f1 -d:) >> $DIFF_FILE
-          echo -e $(sed "${j}q;d" $TMP_FILE_2) >> $DIFF_FILE
-          echo -e $(sed "${i}q;d" $TMP_FILE_1) >> $DIFF_FILE
-        fi
-      done
-
-      if [ $REPORT -eq 1 ]; then
-        echo $FILE " Errors: " $(grep -c '[\&]' $TMP_FILE_1) "Unknown words" $(grep -c '[\#]' $TMP_FILE_1) >> $REPORT_FILE
-        ERRORS=$(($ERRORS +  $(grep -c '[\&]' $TMP_FILE_1)))
-        UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $(grep -c '[\#]' $TMP_FILE_1)))
-        FILES=$(($FILES+1))
-      fi
-    fi
-
+    # Create a reporting for each file
+    report_file $FILE 
   done
+
   if [ $REPORT -eq 1 ]; then
+    # Reporting summary of results in a file
     sed -i "1 aEnd    $(date)"  $REPORT_FILE
     echo "" >> $REPORT_FILE
-    echo "Errors files " $FILES >> $REPORT_FILE
-    echo "Empty files: " $EMPTY_FILES >> $REPORT_FILE
-    echo "Errors: " $ERRORS >> $REPORT_FILE
-    echo "Unknown words: " $UNKNOWN_WORDS >> $REPORT_FILE
-    if [ $VERBOSE -ge 1 ]; then
+    echo "# of files with error(s): " $(($N_FILES-$EMPTY_FILES)) >> $REPORT_FILE
+    echo "# of files without error: " $EMPTY_FILES >> $REPORT_FILE
+    echo "# of error(s): " $ERRORS >> $REPORT_FILE
+    echo "# of unknown words: " $UNKNOWN_WORDS >> $REPORT_FILE
+    if [ $VERBOSITY -ge 1 ]; then
       echo ""
+      echo "Report summary:"
       echo ""
       cat $REPORT_FILE
     fi
