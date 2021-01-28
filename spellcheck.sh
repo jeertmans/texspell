@@ -218,8 +218,32 @@ function first_match_lineno_file {
   local MATCH=$1
   local FILE=$2
   #echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
-  echo $(grep -o -m 1 -h -n "${MATCH}" $FILE | cut -f1 -d:)
+  echo $(grep -o -m 1 -h -n "$(strip_leading_spaces "${MATCH}")" $FILE | cut -f1 -d:)
 
+}
+
+# Remove all the space from the first argument and output it
+# 1 - String to clean
+#
+# R - String cleaned
+function strip_leading_spaces {
+  echo $(echo $1 | sed "s/ *$//g")
+}
+
+# Replace all \ by \\
+# 1 - String to replace
+#
+# R - Replaced string
+function replace_backslash_by_double {
+  echo "$(echo "$1" | sed 's/\\/\\\\/g')"
+}
+
+# Clean string for echo -e
+# 1 - String to clean
+#
+# R - String cleaned
+function clean_for_echo {
+  echo $(replace_backslash_by_double "$(strip_leading_spaces "$1")")
 }
 
 function report_file {
@@ -270,8 +294,11 @@ function report_file {
         if [ $j -gt $k ]; then
 
           if [ $VERBOSITY -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
+            COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+            COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
             echo -e $COLORIZED_LINE
             echo -e $COLORIZED_ERRORS
+            echo "-----"
             COLORIZED_LINE=""
             COLORIZED_ERRORS=""
             POS=0
@@ -302,14 +329,18 @@ function report_file {
             COLORIZED_ERRORS+="\n${COLORIZED_SUGG}"
           fi
           LENGTH=$((V_POSITION-POS))
-
-          COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:$LENGTH}${RED}${ERRORNOUS_WORD}${NC}"
+          PREV_NC=${ERRORNOUS_LINE:$POS:$LENGTH}
+          PREV_NC=$(replace_backslash_by_double "${PREV_NC}")
+          COLORIZED_LINE+="${PREV_NC}${RED}${ERRORNOUS_WORD}${NC}"
           POS=$((V_POSITION+${#ERRORNOUS_WORD}))
         fi
       fi
     done
     # Print last line
     if [ $VERBOSITY -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
+      COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+      COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
+
       echo -e $COLORIZED_LINE
       echo -e $COLORIZED_ERRORS
     fi
