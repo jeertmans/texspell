@@ -39,6 +39,7 @@ CHECK_HIDDEN=0 #Check or not (spell/clean) files in hidden dir/files
 SRC="." # SRC to check
 SRCISFILE=0 # Is SRC a file
 TEMP_DIR=""
+N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
 
 #################
@@ -246,6 +247,100 @@ function clean_for_echo {
   echo $(replace_backslash_by_double "$(strip_leading_spaces "$1")")
 }
 
+# Keep only x first words
+# 1 - String
+# 2 - Number of words
+#
+# R - X first words
+function keep_x_first_words {
+  echo $(echo "$1" | tr ' ' '\n' | head -${2} | xargs -n${2})
+}
+
+# Keep only x last words
+# 1 - String
+# 2 - Number of words
+#
+# R - X last words
+function keep_x_last_words {
+  echo $(echo "$1" | tr ' ' '\n' | tail -${2} | xargs -n${2})
+}
+
+# Reduce string to the first X words. It will also add [...] if word are removed
+# 1 - String to operate to
+# 2 - Number of words to keep
+#
+# R - String with less words
+function reduce_string_size_first {
+  local STR=$1
+  local LEN=$2
+
+  local OUT=$(keep_x_first_words "$STR" $LEN)
+  if [ $(echo "$OUT" | wc -w) -eq $(echo "$STR" | wc -w) ]; then
+    echo "$STR"
+  else
+    local DEB=""
+    local END=""
+    if [ "${STR: -1}" == " " ]; then
+      END=" "
+    fi
+    if [ "${STR: 0}" == " " ]; then
+      DEB=" "
+    fi
+    echo "$DEB$OUT [...]$END"
+  fi
+}
+
+# Reduce string to the last X words. It will also add [...] if word are removed
+# 1 - String to operate to
+# 2 - Number of words to keep
+#
+# R - String with less words
+function reduce_string_size_last {
+  local STR=$1
+  local LEN=$2
+
+  local OUT=$(keep_x_last_words "$STR" $LEN)
+  if [ $(echo "$OUT" | wc -w) -eq $(echo "$STR" | wc -w) ]; then
+    echo "$STR"
+  else
+    local DEB=""
+    local END=""
+    if [ "${STR: -1}" == " " ]; then
+      END=" "
+    fi
+    if [ "${STR:0:1}" == " " ]; then
+      DEB=" "
+    fi
+    echo "$DEB[...] $OUT$END"
+  fi
+}
+
+# Reduce string to the last and first X words. It will also add [...] if word are removed
+# 1 - String to operate to
+# 2 - Number of words to keep
+#
+# R - String with less words
+function reduce_string_size {
+  local STR=$1
+  local LEN=$2
+
+  local FIRST=$(keep_x_first_words "$STR" $LEN)
+  local LAST=$(keep_x_last_words "$STR" $LEN)
+  if [ $(($(echo "$FIRST" | wc -w) + $(echo "$LAST" | wc -w))) -lt $(echo "$STR" | wc -w) ]; then
+    local OUT="$FIRST [...] $LAST"
+    local DEB=""
+    local END=""
+    if [ "${STR: -1}" == " " ]; then
+      END=" "
+    fi
+    if [ "${STR:0:1}" == " " ]; then
+      DEB=" "
+    fi
+    echo "$DEB$OUT$END"
+  else
+    echo "$STR"
+  fi
+}
 function report_file {
   local FILE=$1
   local FILENAME=$(basename $FILE)
@@ -294,7 +389,11 @@ function report_file {
         if [ $j -gt $k ]; then
 
           if [ $VERBOSITY -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
-            COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+            if [ $VERBOSITY -lt 3 ]; then
+              COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
+            else
+              COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+            fi
             COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
             echo -e $COLORIZED_LINE
             echo -e $COLORIZED_ERRORS
@@ -331,6 +430,13 @@ function report_file {
           LENGTH=$((V_POSITION-POS))
           PREV_NC=${ERRORNOUS_LINE:$POS:$LENGTH}
           PREV_NC=$(replace_backslash_by_double "${PREV_NC}")
+          if [ $VERBOSITY -lt 3 ]; then
+            if [ $POS -eq 0 ]; then 
+              PREV_NC=$(reduce_string_size_last "$PREV_NC" $N_WORD_KEPT)
+            else
+              PREV_NC=$(reduce_string_size "$PREV_NC" $N_WORD_KEPT)
+            fi
+          fi
           COLORIZED_LINE+="${PREV_NC}${RED}${ERRORNOUS_WORD}${NC}"
           POS=$((V_POSITION+${#ERRORNOUS_WORD}))
         fi
@@ -338,7 +444,11 @@ function report_file {
     done
     # Print last line
     if [ $VERBOSITY -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
-      COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+      if [ $VERBOSITY -lt 3 ]; then
+        COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
+      else
+        COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+      fi
       COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
 
       echo -e $COLORIZED_LINE
