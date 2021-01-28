@@ -231,7 +231,7 @@ function strip_leading_spaces {
 }
 
 # Replace all \ by \\
-# 1 string to replace
+# 1 - String to replace
 #
 # R - Replaced string
 function replace_backslash_by_double {
@@ -239,7 +239,7 @@ function replace_backslash_by_double {
 }
 
 # Clean string for echo -e
-# 1 String to clean
+# 1 - String to clean
 #
 # R - String cleaned
 function clean_for_echo {
