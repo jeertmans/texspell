@@ -1,0 +1,52 @@
+%% Comments %%
+% Should not correct errors
+%
+% 1) Hello my nam is Bob, yes I like to eaat some fish
+
+%% Document class %%
+% Should not correct errors
+\documentclass{article}
+
+%% Packages %%
+% Should not correct errors
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+%% Variable and command definitions %%
+% Should only correct erros if displayed in compiled pdf
+% Examples:
+%
+% 1) Do not correct error because it is not displayed
+\definecolor{mycollor}{RGB}{0, 0, 0}
+\newcommand\kommand{}
+% 2) Correct error because it is displayed as text
+\newcommand\mycommand{Figurre}
+
+%% Function calls %%
+% Should correct errors
+\title{Tittle if document}
+\author{My name is unkorrect}
+\date{Some very weyrd date}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+%% Text %%
+% Should correct errors
+
+
+%% Figures and other environments %%
+% Should only correct erros if displayed in compiled pdf
+\begin{figure}
+    \centering
+    \includegraphics{my_wrong_immage.pdf} % do not correct
+    \caption{My good caption} % do correct this
+    \label{fig:my_wrong_labell} % do not correct
+\end{figure}
+
+\end{document}
+
