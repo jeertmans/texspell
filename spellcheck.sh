@@ -477,7 +477,8 @@ function report_file {
     L_UNKNOWN_WORDS=$(($(grep -c '[\#]' $TMP_FILE_1)))
     sed -i "2iNumber of errors: $L_ERRORS" $TMP_FILE_DIFF
     sed -i "3iNumber of unknown words: $L_UNKNOWN_WORDS" $TMP_FILE_DIFF
-    local SHASUM=$(sha256sum $TMP_FILE_DIFF)
+    # Shasum on file with errors
+    local SHASUM=$(sha256sum $TMP_FILE_2)
     sed -i "2iDate:  $(date)" $TMP_FILE_DIFF
     sed -i "5iShasum: $SHASUM" $TMP_FILE_DIFF
 
