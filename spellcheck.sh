@@ -22,6 +22,7 @@ Options:\n
 -a, --all: Clean/Check also hidden files and hidden directories\n
 -c, --clean: Remove all .diff in the . directiory and sub-directories\n
 -o, --clean-only: Do not generate the ${DIFF_EXT}\n
+-m, --modified: Will report only the modified .diff (cannot the .diff)\n
 --no-report: Do not produce a report\n
 -v, --version: get version number\n
 \n"
@@ -35,6 +36,7 @@ CLEAN=0 #Remove or not diff files
 SPELL=1 #Create or not diff files
 VERBOSITY=1 # Level of verbosity
 REPORT=1 # Produce a report or not
+ONLY_MODIFIED=0 # report (and print only the modified files
 CHECK_HIDDEN=0 #Check or not (spell/clean) files in hidden dir/files
 SRC="." # SRC to check
 SRCISFILE=0 # Is SRC a file
@@ -75,6 +77,10 @@ while test $# -gt 0; do
       ;;
     -a|--all)
       CHECK_HIDDEN=1 
+      shift
+      ;;
+    -m|--modified)
+      ONLY_MODIFIED=1
       shift
       ;;
     *)
@@ -341,9 +347,17 @@ function reduce_string_size {
     echo "$STR"
   fi
 }
+
+# Report all error of a file
+# 1 - File to be reported
+#
+# R - "TMP_FILE_DIFF" "TMP_FILE_STDOUT" "L_ERRORS" "L_UNKNOWN_WORDS"
 function report_file {
   local FILE=$1
   local FILENAME=$(basename $FILE)
+
+  local L_ERRORS=0
+  local L_UNKNOWN_WORDS=0
 
   # Generate TMP 1
   local TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
@@ -354,25 +368,28 @@ function report_file {
   local TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
   lines_with_errors $FILE $TMP_FILE_2 
 
-  if [ $VERBOSITY -ge 1 ]; then
-    echo "Proccesing" $FILE
-  fi
+  local TMP_FILE_DIFF=$(mktemp -p "${TEMP_DIR}" "${FILENAME}3_XXXXX.tmp")
+  
+  local TMP_FILE_STDOUT=$(mktemp -p "${TEMP_DIR}" "${FILENAME}5_XXXXX.tmp")
 
   # Count the # of lines (errors) in file
   local N_LINES=$(wc -l $TMP_FILE_1 | awk '{ print $1 }') 
+  
+  if [ $N_LINES -eq 1 ]; then 
+    if [[ $(cat "$TMP_FILE_1") == "" ]]; then
+      N_LINES=0
+      cat /dev/null > $TMP_FILE_1
+    fi
+  fi
 
   if [ $N_LINES -eq 0 ]; then
     if [ $VERBOSITY -ge 1 ]; then
-      echo $FILE " is empty"
+      echo $FILE " contains no error" >> $TMP_FILE_STDOUT
     fi
 
-    if [ $REPORT -eq 1 ]; then
-      echo $FILE " no errors" >> $REPORT_FILE
-      EMPTY_FILES=$(($EMPTY_FILES+1))
-    fi
   else
     local DIFF_FILE="${FILE}${DIFF_EXT}"
-    echo "Created by texspell">$DIFF_FILE
+    echo "Created by texspell">> $TMP_FILE_DIFF
 
     j=0
     k=-1
@@ -395,9 +412,9 @@ function report_file {
               COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
             fi
             COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
-            echo -e $COLORIZED_LINE
-            echo -e $COLORIZED_ERRORS
-            echo "-----"
+            echo -e $COLORIZED_LINE >> $TMP_FILE_STDOUT
+            echo -e $COLORIZED_ERRORS >> $TMP_FILE_STDOUT
+            echo "-----" >> $TMP_FILE_STDOUT
             COLORIZED_LINE=""
             COLORIZED_ERRORS=""
             POS=0
@@ -406,13 +423,13 @@ function report_file {
           ERRORNOUS_LINE="$(ith_line_file $TMP_FILE_2 $j)"
           LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" $FILE)
 
-          echo "----" >> $DIFF_FILE
-          echo "In line ${LINE_NO}:" >> $DIFF_FILE
-          echo $ERRORNOUS_LINE >> $DIFF_FILE
+          echo "----" >> $TMP_FILE_DIFF
+          echo "In line ${LINE_NO}:" >> $TMP_FILE_DIFF
+          echo $ERRORNOUS_LINE >> $TMP_FILE_DIFF
           k=$j
         fi
         
-        echo $SUGGESTIONS >> $DIFF_FILE
+        echo $SUGGESTIONS >> $TMP_FILE_DIFF
 
         if [ $VERBOSITY -ge 2 ]; then
           MATCH="(V([0-9]+):\s)(\S+)(\s=>\s)(.+)"
@@ -451,18 +468,21 @@ function report_file {
       fi
       COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
 
-      echo -e $COLORIZED_LINE
-      echo -e $COLORIZED_ERRORS
+      echo -e $COLORIZED_LINE >> $TMP_FILE_STDOUT
+      echo -e $COLORIZED_ERRORS >> $TMP_FILE_STDOUT
     fi
 
-    if [ $REPORT -eq 1 ]; then
-      echo $FILE " Errors: " $(grep -c '[\&]' $TMP_FILE_1) "Unknown words" $(grep -c '[\#]' $TMP_FILE_1) >> $REPORT_FILE
-      # We could count errors in the loop (each i) but global variable doesn seem to be updated
-      ERRORS=$(($ERRORS +  $(grep -c "[=>]" $TMP_FILE_1)))
-      UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $(grep -c '[\#]' $TMP_FILE_1)))
-    fi
+    
+    L_ERRORS=$(($(grep -c "[=>]" $TMP_FILE_1)))
+    L_UNKNOWN_WORDS=$(($(grep -c '[\#]' $TMP_FILE_1)))
+    sed -i "2iNumber of errors: $L_ERRORS" $TMP_FILE_DIFF
+    sed -i "3iNumber of unknown words: $L_UNKNOWN_WORDS" $TMP_FILE_DIFF
+    local SHASUM=$(sha256sum $TMP_FILE_DIFF)
+    sed -i "2iDate:  $(date)" $TMP_FILE_DIFF
+    sed -i "5iShasum: $SHASUM" $TMP_FILE_DIFF
+
   fi
-
+  echo "$TMP_FILE_DIFF $TMP_FILE_STDOUT" $L_ERRORS $L_UNKNOWN_WORDS
 }
 
 ####################
@@ -488,6 +508,9 @@ if [ $SPELL -eq 1 ]; then
   EMPTY_FILES=0
   ERRORS=0
   UNKNOWN_WORDS=0
+  UNCHANGED_FILES=0
+  L_ERRORS=0
+  L_UNKNOWN_WORDS=0
   if [ $REPORT -eq 1 ]; then 
     echo "Start " $(date) > $REPORT_FILE 
     echo "" >> $REPORT_FILE
@@ -504,15 +527,85 @@ if [ $SPELL -eq 1 ]; then
 
   for FILE in ${FILES_LIST[@]}; do
     # Create a reporting for each file
-    report_file $FILE 
+    echo ""
+    echo "Processing $FILE"
+    OUTPUT=$(report_file $FILE)
+    TMP_FILE_DIFF=$(echo "$OUTPUT" | cut -f1 -d" ")
+    TMP_FILE_STDOUT=$(echo "$OUTPUT" | cut -f2 -d" ")
+    L_ERRORS=$(echo "$OUTPUT" | cut -f3 -d" ")
+    L_UNKNOWN_WORDS=$(echo "$OUTPUT" | cut -f4 -d" ")
+
+    if [[ ONLY_MODIFIED -eq 1 ]]; then
+      if [[ -f "$FILE$DIFF_EXT" ]]; then
+        if [ $(wc -l $TMP_FILE_DIFF | awk '{ print $1 }') -ne 0 ]; then
+          OLD_SHASUM=$(ith_line_file $FILE$DIFF_EXT 5 | cut -f2 -d" ")
+          NEW_SHASUM=$(ith_line_file $TMP_FILE_DIFF 5 | cut -f2 -d" ")
+          if [[ $OLD_SHASUM == $NEW_SHASUM ]]; then
+            echo "$FILE is unchanged and contains errors"
+            UNCHANGED_FILES=$(($UNCHANGED_FILES + 1))
+            if [ $REPORT -eq 1 ]; then
+              echo "$FILE is unchanged" >> $REPORT_FILE
+            fi
+          else
+            cat $TMP_FILE_STDOUT
+            cat $TMP_FILE_DIFF > $FILE$DIFF_EXT
+            ERRORS=$(($ERRORS + $L_ERRORS))
+            UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $L_UNKNOWN_WORDS))
+            if [ $REPORT -eq 1 ]; then
+              echo "$FILE  Errors: $L_ERRORS | Unknown words: $L_UNKNOWN_WORDS" >> $REPORT_FILE
+            fi
+          fi
+        else
+          cat $TMP_FILE_STDOUT
+          EMPTY_FILES=$(($EMPTY_FILES + 1))
+          if [ $REPORT -eq 1 ]; then
+            echo "$FILE is without errors" >> $REPORT_FILE
+          fi
+        fi
+      else 
+        if [ $(wc -l $TMP_FILE_DIFF | awk '{ print $1 }') -ne 0 ]; then
+          cat $TMP_FILE_STDOUT
+          cat $TMP_FILE_DIFF > $FILE$DIFF_EXT
+          ERRORS=$(($ERRORS + $L_ERRORS))
+          UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $L_UNKNOWN_WORDS))
+          if [ $REPORT -eq 1 ]; then
+            echo "$FILE  Errors: $L_ERRORS | Unknown words: $L_UNKNOWN_WORDS" >> $REPORT_FILE
+          fi
+        else
+          echo "$FILE$TEX_EXT is unchanged and without errors"
+          UNCHANGED_FILES=$(($UNCHANGED_FILES + 1))
+          if [ $REPORT -eq 1 ]; then
+            echo "$FILE is unchanged" >> $REPORT_FILE
+          fi
+        fi
+      fi
+    else
+      cat $TMP_FILE_STDOUT
+      if [ $(wc -l $TMP_FILE_DIFF | awk '{ print $1 }') -ne 0 ]; then
+        cat $TMP_FILE_DIFF > $FILE$DIFF_EXT
+        ERRORS=$(($ERRORS + $L_ERRORS))
+        UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $L_UNKNOWN_WORDS))
+        if [ $REPORT -eq 1 ]; then
+          echo "$FILE  Errors: $L_ERRORS | Unknown words: $L_UNKNOWN_WORDS" >> $REPORT_FILE
+        fi
+      else
+        EMPTY_FILES=$(($EMPTY_FILES + 1))
+        if [ $REPORT -eq 1 ]; then
+          echo "$FILE is without errors" >> $REPORT_FILE
+        fi
+      fi
+    fi
   done
 
   if [ $REPORT -eq 1 ]; then
     # Reporting summary of results in a file
     sed -i "1 aEnd    $(date)"  $REPORT_FILE
     echo "" >> $REPORT_FILE
-    echo "# of files with error(s): " $(($N_FILES-$EMPTY_FILES)) >> $REPORT_FILE
+    echo "# of files with error(s): " $(($N_FILES-$EMPTY_FILES-$UNCHANGED_FILES)) >> $REPORT_FILE
     echo "# of files without error: " $EMPTY_FILES >> $REPORT_FILE
+    if [ $ONLY_MODIFIED -eq 1 ]; then
+      echo "# of unmodified files: " $UNCHANGED_FILES >> $REPORT_FILE
+    fi
     echo "# of error(s): " $ERRORS >> $REPORT_FILE
     echo "# of unknown words: " $UNKNOWN_WORDS >> $REPORT_FILE
     if [ $VERBOSITY -ge 1 ]; then
