@@ -43,7 +43,7 @@ Optionnal:
 
 ### Command line tools
 
-* [ ] use a user-defined dictionary
+* [x] use a user-defined dictionary
 * [ ] allow to ignore errors in specific LaTeX env. (tikzpicture, ...) ?
 * [x] Add installation instruction
 * [x] Add completion on command line

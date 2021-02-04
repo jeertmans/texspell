@@ -12,6 +12,7 @@ NC="\033[0m" # No Color
 
 DIFF_EXT=".diff" # Might be changed or choosed by user later... ?
 TEX_EXT=".tex"
+DIC_EXT=".dic"
 
 
 DOC="
@@ -21,6 +22,7 @@ Options:\n
 -h, --help: get this help\n
 -a, --all: Clean/Check also hidden files and hidden directories\n
 -c, --clean: Remove all .diff in the . directiory and sub-directories\n
+-d, --dict [FILE]: Create a dict from FILE
 -o, --clean-only: Do not generate the ${DIFF_EXT}\n
 -m, --modified: Will report only the modified .diff (cannot the .diff)\n
 --no-report: Do not produce a report\n
@@ -41,6 +43,9 @@ CHECK_HIDDEN=0 #Check or not (spell/clean) files in hidden dir/files
 SRC="." # SRC to check
 SRCISFILE=0 # Is SRC a file
 TEMP_DIR=""
+MAKE_DICT=0
+LIST_DICT=""
+DICT="dict_texspell"
 N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
 
@@ -81,6 +86,17 @@ while test $# -gt 0; do
       ;;
     -m|--modified)
       ONLY_MODIFIED=1
+      shift
+      ;;
+    -d|--dict)
+      if [ -f "$2" ]; then
+        MAKE_DICT=1
+        LIST_DICT="$2"
+      else
+        echo "Dictonary \"$2\" is not a file"
+        exit 1
+      fi
+      shift
       shift
       ;;
     *)
@@ -182,7 +198,7 @@ function errors_and_suggestions {
   local OUT=$2
 
   # Run hunspell, discarding lines with no error (*)
-  hunspell -a -t -i utf-8 -d en_US <$IN | grep -v '[\*]' > $OUT
+  hunspell -a -t -i utf-8 -d en_US,$DICT <$IN | grep -v '[\*]' > $OUT
   # Clean the first line of the file containing a header from Ispell
   sed -i '1d' $OUT
   # Remove extra linebreaks
@@ -202,7 +218,7 @@ function errors_and_suggestions {
 function lines_with_errors {
   local IN=$1
   local OUT=$2
-  hunspell -L -t -i utf-8 -d en_US <$IN > $OUT
+  hunspell -L -t -i utf-8 -d en_US,$DICT <$IN > $OUT
 }
 
 # Returns a given line from a file
@@ -226,7 +242,17 @@ function first_match_lineno_file {
   local FILE=$2
   #echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
   echo $(grep -o -m 1 -h -n "$(strip_leading_spaces "${MATCH}")" $FILE | cut -f1 -d:)
+}
 
+# Will update $DICT with respect to $1
+# 1 - File with the list of word into the dict
+#
+# R -
+function create_dict {
+  SORTED=$(cat $1 | sort | uniq) 
+  echo $SORTED >&2
+  echo "$SORTED" | wc -l > $DICT$DIC_EXT
+  echo "$SORTED" >> $DICT$DIC_EXT
 }
 
 # Remove all the space from the first argument and output it
@@ -499,6 +525,14 @@ if [ $CLEAN -eq 1 ]; then
   else
     find_files $SRC $DIFF_EXT $CHECK_HIDDEN | remove_files 
   fi
+fi
+
+
+######################
+# Create/Update Dict #
+######################
+if [ $MAKE_DICT -eq 1 ]; then
+  create_dict $LIST_DICT
 fi
 
 
