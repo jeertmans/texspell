@@ -241,7 +241,7 @@ function first_match_lineno_file {
   local MATCH=$1
   local FILE=$2
   #echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
-  echo $(grep -o -m 1 -h -n "$(strip_leading_spaces "${MATCH}")" $FILE | cut -f1 -d:)
+  echo $(grep -F -o -m 1 -h -n -e "$(strip_leading_spaces "${MATCH}")" $FILE | cut -f1 -d:)
 }
 
 # Will update $DICT with respect to $1
