@@ -6,7 +6,7 @@ install:
 	
 install-texspell:
 	rm -f ${DESTDIR}/texspell
-	ln spellcheck.sh ${DESTDIR}/texspell
+	install ./spellcheck.sh ${DESTDIR}/texspell
 
 install-detex:
 	cd opendetex && $(MAKE) install
