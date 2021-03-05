@@ -1,9 +1,8 @@
 DESTDIR = /usr/local/bin
 
 install:
-	rm -f ${DESTDIR}/texspell
-	ln spellcheck.sh ${DESTDIR}/texspell
-	cd opendetex && $(MAKE) install
+	$(MAKE) install-texspell
+	$(MAKE) install-detex
 	
 install-texspell:
 	rm -f ${DESTDIR}/texspell
@@ -13,8 +12,8 @@ install-detex:
 	cd opendetex && $(MAKE) install
 
 uninstall:
-	rm -f ${DESTDIR}/texspell
-	cd opendetex && $(MAKE) uninstall
+	$(MAKE) uninstall-texspell
+	$(MAKE) uninstall-detex
 
 uninstall-texspell:
 	rm -f ${DESTDIR}/texspell
