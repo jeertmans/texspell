@@ -1,4 +1,6 @@
 DESTDIR = /usr/local/bin
+COMPDIR = $(shell pkg-config --variable=completionsdir bash-completion)
+
 
 install:
 	$(MAKE) install-texspell
@@ -6,7 +8,9 @@ install:
 	
 install-texspell:
 	rm -f ${DESTDIR}/texspell
-	install ./spellcheck.sh ${DESTDIR}/texspell
+	install ./texspell.sh ${DESTDIR}/texspell
+	rm -f ${COMPDIR}/texspell
+	install ./texspell-complete.sh ${COMPDIR}/texspell
 
 install-detex:
 	cd opendetex && $(MAKE) install
@@ -17,6 +21,7 @@ uninstall:
 
 uninstall-texspell:
 	rm -f ${DESTDIR}/texspell
+	rm -f ${COMPDIR}/texspell
 
 uninstall-detex:
 	cd opendetex && $(MAKE) uninstall
