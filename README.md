@@ -3,11 +3,28 @@ Command line spell-checker tools for TeX documents
 
 # Installation
 ## Prerequisite
+### V1
+#### LanguageTool
+The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-server.html) so you will need to install it first:
+- Download the `.zip` from the source
+- Unzip it where you want to 
+
+**Note:** LanguageTool is a server tool so you can install it on another machine instead of your own computer
+
+
+
+#### Opendetex
+Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. You should follow the instruction of the [source](https://github.com/pkubowicz/opendetex)
+
+### V0
 You will need the following package:
 ```
 hunspell
 ```
-##
+## Step-by-step
+### V1
+
+### V0
 - Clone or download the source code
 - Make the file executable `chmod +x spellcheck.sh`
 - Make a link to make this file executable anywhere `ln spellcheck.sh ~/bin/texspell`
@@ -82,4 +99,22 @@ Optionnal:
 
 ## V0.3 - Ideas to sort
 * [ ] Interactive mode: print the errors one by one and choose accept/ignore/refuse
-* [ ] add machine learning (eg.: Writefull add-on) techniques to produces higher quality text ?
+* [ ] add machine learning (eg.: Writefull add-on) techniques to produces higher quality text
+
+
+## V1.0 Add languageTool
+Hunspell is great **but** for us it has 2 main drawback:
+1) Hunspell will try to correct words that will be present in the pdf
+2) Hunspell can only do word by word correction.
+We want to switch to languageTool which is a more powerfull typechecker but we will need to rewrite a lot of the code to adapt it.
+
+
+* [ ] Add languageTool installation instruction
+* [ ] Test the [ngram](https://dev.languagetool.org/finding-errors-using-n-gram-data)
+* [ ] Parse Tex to txt
+* [ ] Correct txt
+* [ ] Associate corrected txt with line in the .tex
+* [ ] Add a config file
+* [ ] Add a mode to launch also the languagetool server
+* [ ] Add a mode to use a default server
+* [ ] Add a mode to use a specific server
