@@ -1,6 +1,6 @@
 #!/bin/bash
 
-_texspell_completion()
+_texspell()
 {
   local cur prev opts
   COMPREPLY=()
@@ -43,6 +43,5 @@ _texspell_completion()
   
 }
 #complete -F _texspell_completion texspell
-complete -o default -F _texspell_completion texspell
-
+complete -o default -F _texspell texspell
 
