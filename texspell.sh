@@ -49,6 +49,18 @@ DICT="dict_texspell"
 N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
 
+##################
+# REGEX PATTERNS #
+##################
+
+# Pattern to be used with detex -1 option
+# Will catch:
+#   \1 - prefix (filename + lineno)
+#   \2 - filename
+#   \3 - linenumber
+#   \4 - line content (possibly empty)
+DETEX_1_PATTERN="((.*.tex):([0-9]+):)(.*)"
+
 #################
 # Flags handler #
 #################
