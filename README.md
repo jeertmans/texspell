@@ -1,7 +1,7 @@
 # texspell
 Command line spell-checker tools for TeX documents
 
-# Installation
+# Intallation
 ## Prerequisite
 ### V1
 #### LanguageTool
@@ -14,16 +14,48 @@ The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-
 
 
 #### Opendetex
-Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. You should follow the instruction of the [source](https://github.com/pkubowicz/opendetex)
+Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. To install it 
+```
+git submodule init
+git submodule update
+```
+
+#### Step by step
+To install it simply do
+```
+sudo make install
+```
+
+It will install both `texspell` and `opendetex`. If you want you can install each module separately:
+
+```
+sudo make install-texspell
+sudo make install-detex
+```
+
+If you need to desinstall `texspell`:
+```
+sudo make uninstall
+```
+or
+```
+sudo make uninstall-texspell
+sudo make uninstall-detex
+```
+
+**Note:**
+If you want to use the completion for zsh make sure that it is activated. Otherwise add those lines in your `.zshrc`:
+```
+autoload -U compinit
+compinit
+```
 
 ### V0
 You will need the following package:
 ```
-hunspell
+sudo hunspell
 ```
 ## Step-by-step
-### V1
-
 ### V0
 - Clone or download the source code
 - Make the file executable `chmod +x spellcheck.sh`
@@ -93,7 +125,7 @@ Optionnal:
 
 * [ ] setup environment (folders, etc.)
 * [ ] setup a requirements file
-* [ ] make executable globally acessible on machine
+* [x] make executable globally acessible on machine
 * [ ] publish tool as a packet that could be installed using apt for example
 
 

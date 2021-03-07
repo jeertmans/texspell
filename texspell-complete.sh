@@ -20,7 +20,7 @@ _texspell()
   local IFS=$'\n'
 
   if [[ ${cur} == -* ]]; then
-    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    COMPLET=${opts}
   fi
 
   
@@ -31,17 +31,24 @@ _texspell()
   #fi
 
   if [[ ${prev} == "--dict" ]]; then
-    COMPREPLY=()
-    return 0
+    echo ""
   fi
 
   if [[ ${prev} == "--verbosity" ]]; then
-    COMPREPLY=( $(compgen -W "0 1 2" -- ${cur}) )
+    echo "0 1 2"
   fi
-  return 0
+
+  echo "$COMPLET"
 
   
 }
-#complete -F _texspell_completion texspell
-complete -o default -F _texspell texspell
 
+_texspell_bash() {
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=( $(compgen -W '$( _texspell )' -- $cur) )
+}
+
+
+complete -o default -F _texspell_bash texspell
