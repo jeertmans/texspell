@@ -2,9 +2,7 @@
 Command line spell-checker tools for TeX documents
 
 # Intallation
-## Prerequisite
-### V1
-#### LanguageTool
+## LanguageTool
 The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-server.html) so you will need to install it first:
 - Download the `.zip` from the source
 - Unzip it where you want to 
@@ -13,14 +11,14 @@ The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-
 
 
 
-#### Opendetex
+## Opendetex
 Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. To install it 
 ```
 git submodule init
 git submodule update
 ```
 
-#### Step by step
+## Step by step
 To install it simply do
 ```
 sudo make install
@@ -50,22 +48,6 @@ autoload -U compinit
 compinit
 ```
 
-### V0
-You will need the following package:
-```
-sudo hunspell
-```
-## Step-by-step
-### V0
-- Clone or download the source code
-- Make the file executable `chmod +x spellcheck.sh`
-- Make a link to make this file executable anywhere `ln spellcheck.sh ~/bin/texspell`
-
-Optionnal:
-- Make the completion script executable `chmod +x texspell-complete.sh`
-- Add to your .bashrc/zshrc `source YOUR_INSTALL_PATH/texspell/texspell-complete.sh` and do not forget to replace `YOUR_INSTALL_PATH` by your actual install path
-
-
 # Coding style
 
 * Variable names should use capital letters and underscores only
@@ -78,6 +60,24 @@ Optionnal:
 
 # todo-lists
 
+## V1.0 Add languageTool
+Hunspell is great **but** for us it has 2 main drawback:
+1) Hunspell will try to correct words that will be present in the pdf
+2) Hunspell can only do word by word correction.
+We want to switch to languageTool which is a more powerfull typechecker but we will need to rewrite a lot of the code to adapt it.
+
+
+* [ ] Add languageTool installation instruction
+* [ ] Test the [ngram](https://dev.languagetool.org/finding-errors-using-n-gram-data)
+* [ ] Parse Tex to txt
+* [ ] Correct txt
+* [ ] Associate corrected txt with line in the .tex
+* [ ] Add a config file
+* [ ] Add a mode to launch also the languagetool server
+* [ ] Add a mode to use a default server
+* [ ] Add a mode to use a specific server
+
+# Version
 ## v0.1 - working prototype
 
 ### Generating diff files
@@ -132,21 +132,3 @@ Optionnal:
 ## V0.3 - Ideas to sort
 * [ ] Interactive mode: print the errors one by one and choose accept/ignore/refuse
 * [ ] add machine learning (eg.: Writefull add-on) techniques to produces higher quality text
-
-
-## V1.0 Add languageTool
-Hunspell is great **but** for us it has 2 main drawback:
-1) Hunspell will try to correct words that will be present in the pdf
-2) Hunspell can only do word by word correction.
-We want to switch to languageTool which is a more powerfull typechecker but we will need to rewrite a lot of the code to adapt it.
-
-
-* [ ] Add languageTool installation instruction
-* [ ] Test the [ngram](https://dev.languagetool.org/finding-errors-using-n-gram-data)
-* [ ] Parse Tex to txt
-* [ ] Correct txt
-* [ ] Associate corrected txt with line in the .tex
-* [ ] Add a config file
-* [ ] Add a mode to launch also the languagetool server
-* [ ] Add a mode to use a default server
-* [ ] Add a mode to use a specific server
