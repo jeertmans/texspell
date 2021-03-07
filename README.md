@@ -1,21 +1,52 @@
 # texspell
 Command line spell-checker tools for TeX documents
 
-# Installation
-## Prerequisite
-You will need the following package:
-```
-hunspell
-```
-##
-- Clone or download the source code
-- Make the file executable `chmod +x spellcheck.sh`
-- Make a link to make this file executable anywhere `ln spellcheck.sh ~/bin/texspell`
+# Intallation
+## LanguageTool
+The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-server.html) so you will need to install it first:
+- Download the `.zip` from the source
+- Unzip it where you want to 
 
-Optionnal:
-- Make the completion script executable `chmod +x texspell-complete.sh`
-- Add to your .bashrc/zshrc `source YOUR_INSTALL_PATH/texspell/texspell-complete.sh` and do not forget to replace `YOUR_INSTALL_PATH` by your actual install path
+**Note:** LanguageTool is a server tool so you can install it on another machine instead of your own computer
 
+
+
+## Opendetex
+Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. To install it 
+```
+git submodule init
+git submodule update
+```
+
+## Step by step
+To install it simply do
+```
+sudo make install
+```
+
+It will install both `texspell` and `opendetex`. If you want you can install each module separately:
+
+```
+sudo make install-texspell
+sudo make install-detex
+```
+
+If you need to desinstall `texspell`:
+```
+sudo make uninstall
+```
+or
+```
+sudo make uninstall-texspell
+sudo make uninstall-detex
+```
+
+**Note:**
+If you want to use the completion for zsh make sure that it is activated. Otherwise add those lines in your `.zshrc`:
+```
+autoload -U compinit
+compinit
+```
 
 # Coding style
 
@@ -29,6 +60,24 @@ Optionnal:
 
 # todo-lists
 
+## V1.0 Add languageTool
+Hunspell is great **but** for us it has 2 main drawback:
+1) Hunspell will try to correct words that will be present in the pdf
+2) Hunspell can only do word by word correction.
+We want to switch to languageTool which is a more powerfull typechecker but we will need to rewrite a lot of the code to adapt it.
+
+
+* [ ] Add languageTool installation instruction
+* [ ] Test the [ngram](https://dev.languagetool.org/finding-errors-using-n-gram-data)
+* [ ] Parse Tex to txt
+* [ ] Correct txt
+* [ ] Associate corrected txt with line in the .tex
+* [ ] Add a config file
+* [ ] Add a mode to launch also the languagetool server
+* [ ] Add a mode to use a default server
+* [ ] Add a mode to use a specific server
+
+# Version
 ## v0.1 - working prototype
 
 ### Generating diff files
@@ -76,10 +125,10 @@ Optionnal:
 
 * [ ] setup environment (folders, etc.)
 * [ ] setup a requirements file
-* [ ] make executable globally acessible on machine
+* [x] make executable globally acessible on machine
 * [ ] publish tool as a packet that could be installed using apt for example
 
 
 ## V0.3 - Ideas to sort
 * [ ] Interactive mode: print the errors one by one and choose accept/ignore/refuse
-* [ ] add machine learning (eg.: Writefull add-on) techniques to produces higher quality text ?
+* [ ] add machine learning (eg.: Writefull add-on) techniques to produces higher quality text

@@ -6,6 +6,11 @@
 
 # Colors
 # https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
+_arguments -C \
+        "-h[Show help information]" \
+        "--h[Show help information]" \
+        "1: :(quietly loudly)" \
+        "*::arg:->args"
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 NC="\033[0m" # No Color
