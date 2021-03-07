@@ -19,7 +19,6 @@ lastWord="${tokens[-1]}"
 case  "$lastWord" in
   (--verbosity)
    ## Do nothing
-   bruh="test"
     ;;
   (*)
     _files -g \*.tex
