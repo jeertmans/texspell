@@ -529,12 +529,12 @@ function report_file {
 ####################
 
 # Check if the project file is specified
-if [[ $SRC == "." ]]; then
+if [ -d $SRC ]; then
   >&2 echo "No file specified"
   exit 1
 fi
 
-if [ ${SRC: -4} != $TEX_EXT ]; then
+if [ ".${SRC#*.}" != $TEX_EXT ]; then
   >&2 echo "The file is not a texfile"
   exit 1
 fi
