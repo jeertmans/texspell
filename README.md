@@ -1,6 +1,7 @@
 # texspell
 Command line spell-checker tools for TeX documents
 
+
 # Intallation
 ## LanguageTool
 The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-server.html) so you will need to install it first:
