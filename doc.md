@@ -1,7 +1,5 @@
 
 # API
 
-<object data="images/block.pdf" type="application/pdf" width="700px" height="700px">
-    <embed src="images/block.pdf">
-    </embed>
+<object data="/images/bloc.pdf" type="application/pdf" width="100%"> 
 </object>
