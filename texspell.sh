@@ -309,6 +309,14 @@ function keep_x_last_words {
   echo $(echo "$1" | tr ' ' '\n' | tail -${2} | xargs -n${2})
 }
 
+# Create a new tmp file 
+# 1 filename
+#
+# R - path tho file
+function create_file {
+  echo $(mktemp -p "${TEMP_DIR}" "$13_XXXXX.tmp")
+}
+
 # Reduce string to the first X words. It will also add [...] if word are removed
 # 1 - String to operate to
 # 2 - Number of words to keep
@@ -524,6 +532,25 @@ function report_file {
   echo "$TMP_FILE_DIFF $TMP_FILE_STDOUT" $L_ERRORS $L_UNKNOWN_WORDS
 }
 
+# Before is old function
+
+##################
+# Texfile parser #
+##################
+# 1 - SRC of the project to parse
+# 2 - Path to a tmp file with the tex parsed into a plain text
+# 3 - Path to a tmp file with the correspondance between tex and plain tex
+function tex_parser_opendetex {
+  local SRC=$1
+  local PLAINTEX=$2
+  local MATCHER=$3
+
+  detex $SRC > $PLAINTEX
+  detex -1 $SRC | cut -f1,2 -d':' > $MATCHER
+
+}
+
+
 ####################
 # Script execution #
 ####################
@@ -538,6 +565,17 @@ if [ ".${SRC#*.}" != $TEX_EXT ]; then
   >&2 echo "The file is not a texfile"
   exit 1
 fi
+
+PLAINTEX_FILE=$(create_file "plaintext")
+MATCHER_FILE=$(create_file "match_plaintex_input")
+
+tex_parser_opendetex $SRC $PLAINTEX_FILE $MATCHER_FILE
+
+
+
+
+exit 0
+# After is just old
 
 # Cleaning diff files
 if [ $CLEAN -eq 1 ]; then
