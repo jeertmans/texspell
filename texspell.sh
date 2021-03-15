@@ -314,7 +314,7 @@ function keep_x_last_words {
 #
 # R - path tho file
 function create_file {
-  echo $(mktemp -p "${TEMP_DIR}" "$13_XXXXX.tmp")
+  echo $(mktemp -p "${TEMP_DIR}" "${1}_XXXXX.tmp")
 }
 
 # Reduce string to the first X words. It will also add [...] if word are removed
@@ -712,4 +712,3 @@ if [ $SPELL -eq 1 ]; then
     fi
   fi
 fi
-
