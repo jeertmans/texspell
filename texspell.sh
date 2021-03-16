@@ -49,6 +49,12 @@ DICT="dict_texspell"
 N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
 
+typeset -A CONFIG
+CONFIG=(
+  [HOST]="0.0.0.0"
+  [LANGUAGETOOLS]="TRUE"
+)
+
 ##################
 # REGEX PATTERNS #
 ##################
@@ -131,6 +137,34 @@ done
 #########################
 # Function declarations #
 #########################
+
+
+# Load config file into config array
+# It will only override config variables that are present in the files
+# and currently exist
+# 1 - Path to any config file
+#
+# R - Nothing
+function load_config {
+  local CONF_FILE=$1
+  for KEY in "${!CONFIG[@]}"; do
+    # Only select last matching pattern in config file
+    VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" $CONF_FILE | tail -n -1)
+    if [ ! -z $VALUE ]; then
+      CONFIG[$KEY]="$VALUE"
+    fi
+  done
+}
+
+# Tries to find config file (if not specified)
+# a) First tries in the project folder (same as source files for project)
+# b) Then tries to find one in ~/.config/texspell/texspell.conf ?
+# 1 - Current project folder
+#
+# R - Config file (possibly empty)
+function find_config {
+  # TODO
+}
 
 # Find files
 # 1 - Source file or directory
