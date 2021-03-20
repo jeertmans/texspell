@@ -1,19 +1,32 @@
 # texspell
 Command line spell-checker tools for TeX documents
 
+## Description
+
+texspell provides an easy-to use interface between popular open source tools to enable fast and reliable TeX documents proof-reading.
 
 # Intallation
+
+The current implementation relies on two open source tools: **LanguageTool** for grammar and spell checking, and **Opendetex** for TeX document parsing.
+
+First, you need to clone this repo on your local machine:
+```
+git clone https://github.com/jeertmans/texspell.git
+```
+
 ## LanguageTool
-The V1 of texspell is based on [languageTool](https://dev.languagetool.org/http-server.html) so you will need to install it first:
+The V1 of texspell is based on [LanguageTool](https://dev.languagetool.org/http-server.html) so you will need to install it first:
 - Download the `.zip` from the source
-- Unzip it where you want to 
+- Unzip it where you want to
+
+Detailes installation instructions can be found on their [GitHub repository](https://github.com/languagetool-org/languagetool).
 
 **Note:** LanguageTool is a server tool so you can install it on another machine instead of your own computer
 
 
-
 ## Opendetex
-Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. To install it 
+Opendetex will help us to parse our `.tex` into plain text to let LanguageTool correct it. 
+For easy version control, texspell ships with its own version of Opendetex. To install it, go to the `texspell` folder and do:
 ```
 git submodule init
 git submodule update
@@ -32,7 +45,7 @@ sudo make install-texspell
 sudo make install-detex
 ```
 
-If you need to desinstall `texspell`:
+If you need to uninstall `texspell`:
 ```
 sudo make uninstall
 ```
