@@ -22,6 +22,7 @@ Options:\n
 -h, --help: get this help\n
 -a, --all: Clean/Check also hidden files and hidden directories\n
 -c, --clean: Remove all .diff in the . directiory and sub-directories\n
+    --config [FILE]: select a config file to use
 -d, --dict [FILE]: Create a dict from FILE
 -o, --clean-only: Do not generate the ${DIFF_EXT}\n
 -m, --modified: Will report only the modified .diff (cannot the .diff)\n
@@ -48,6 +49,8 @@ LIST_DICT=""
 DICT="dict_texspell"
 N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
+PATH_DEFAULT_CONFIG="/etc/texspell.cfg"
+PATH_CONFIG="$HOME/.config/texspell.cfg"
 
 ##################
 # REGEX PATTERNS #
@@ -104,6 +107,16 @@ while test $# -gt 0; do
       if [ -f "$2" ]; then
         MAKE_DICT=1
         LIST_DICT="$2"
+      else
+        echo "\"$2\" is not a config file"
+        exit 1
+      fi
+      shift
+      shift
+      ;;
+    --config)
+      if [ -f "$2" ]; then
+        PATH_CONFIG="$2"
       else
         echo "Dictonary \"$2\" is not a file"
         exit 1
@@ -534,6 +547,27 @@ function report_file {
 
 # Before is old function
 
+# Search for a variable name in a file
+# 1 - path to file
+# 2 - variable  name
+#
+# R - the variable or undefined
+config_read_file() {
+    (grep -E "^${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") | head -n 1 | cut -d '=' -f 2-;
+}
+
+# Search in the configs file for a variable
+# 1 - Name of the variable
+#
+# R - the variable or __UNDEFINED__
+config_get() {
+    val="$(config_read_file "$PATH_CONFIG" "${1}")";
+    if [ "${val}" = "__UNDEFINED__" ]; then
+        val="$(config_read_file "$PATH_DEFAULT_CONFIG" "${1}")";
+    fi
+    printf -- "%s" "${val}";
+}
+
 ##################
 # Texfile parser #
 ##################
@@ -571,7 +605,7 @@ MATCHER_FILE=$(create_file "match_plaintex_input")
 
 tex_parser_opendetex $SRC $PLAINTEX_FILE $MATCHER_FILE
 
-
+echo "$(config_get typeChecker)"
 
 
 exit 0

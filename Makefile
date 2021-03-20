@@ -1,4 +1,5 @@
 DESTDIR = /usr/local/bin
+DESTDIRCONFIG = /etc
 COMPDIRBASH = $(shell pkg-config --variable=completionsdir bash-completion)
 COMPDIRZSH = /usr/local/share/zsh/site-functions
 COMPDIRZSHTARGET = $(COMPDIRZSH)-$(wildcard $(COMPDIRZSH))
@@ -12,6 +13,7 @@ install: ## Installs texspell and Opendetex
 install-texspell: | $(COMPDIRZSHTARGET) ## Installs texspell
 	rm -f ${DESTDIR}/texspell
 	install ./texspell.sh ${DESTDIR}/texspell
+	cp ./conf.cfg.defaults ${DESTDIRCONFIG}/texspell.cfg
 	rm -f ${COMPDIRBASH}/texspell
 	install ./texspell-complete.sh ${COMPDIRBASH}/texspell
 
@@ -28,6 +30,7 @@ uninstall: ## Uninstalls texspell and Opendetex
 
 uninstall-texspell: ## Uninstalls texspell
 	rm -f ${DESTDIR}/texspell
+	rm -f ${DESTDIRCONFIG}/texspell.cfg
 	rm -f ${COMPDIR}/texspell
 
 uninstall-detex: ## Uninstalls Opendetex

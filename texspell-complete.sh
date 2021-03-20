@@ -10,6 +10,7 @@ _texspell()
 --no-report
 --all
 --clean
+--config
 --dict 
 --help
 --version
@@ -31,6 +32,10 @@ _texspell()
   #fi
 
   if [[ ${prev} == "--dict" ]]; then
+    echo ""
+  fi
+
+  if [[ ${prev} == "--config" ]]; then
     echo ""
   fi
 
