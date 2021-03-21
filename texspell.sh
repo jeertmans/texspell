@@ -584,6 +584,71 @@ function tex_parser_opendetex {
 
 }
 
+##################
+# Type checker #
+##################
+# 1 - Path to a plaintex file to correct
+# 2 - Path to a tmp file with
+#   * Line of error
+#   * Offset and range of the error
+#   * type of error + proposition to correct
+function type_checker_hunspell {
+  local IN=$1
+  local OUT=$2
+  local FILE=$1
+  local FILENAME=$(basename $FILE)
+  local TMP_FILE_DIFF=$2
+  
+  local L_ERRORS=0
+  local L_UNKNOWN_WORDS=0
+
+  local TMP_FILE_1=$(create_file "errors_and_suggestions")
+  local TMP_FILE_2=$(create_file "lines_with_errors")
+  errors_and_suggestions $IN $TMP_FILE_1
+  lines_with_errors $IN $TMP_FILE_2 
+
+  local N_LINES=$(wc -l $TMP_FILE_1 | awk '{ print $1 }') 
+  
+  if [ $N_LINES -eq 1 ]; then 
+    if [[ $(cat "$TMP_FILE_1") == "" ]]; then
+      N_LINES=0
+      cat /dev/null > $OUT
+    fi
+  fi
+
+  # No errors
+  if [ $N_LINES -eq 0 ]; then
+    return  
+  else
+    j=0
+    k=-1
+    POS=0
+    COLORIZED_LINE=""
+    COLORIZED_ERRORS=""
+    for (( i=1; i <= $N_LINES ; i++ ))
+    do
+      SUGGESTIONS=$(ith_line_file $TMP_FILE_1 $i)
+
+      if [ -z "${SUGGESTIONS}" ]; then
+        j=$((j+1))
+      else
+        if [ $j -gt $k ]; then
+
+
+          ERRORNOUS_LINE="$(ith_line_file $TMP_FILE_2 $j)"
+          LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" $FILE)
+
+          echo "----" >> $TMP_FILE_DIFF
+          echo "In line ${LINE_NO}:" >> $TMP_FILE_DIFF
+          echo $ERRORNOUS_LINE >> $TMP_FILE_DIFF
+          k=$j
+        fi
+        
+        echo $SUGGESTIONS >> $TMP_FILE_DIFF
+      fi
+    done
+  fi
+}
 
 ####################
 # Script execution #
@@ -602,8 +667,12 @@ fi
 
 PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
+ERRORED_FILE=$(create_file "errored_input")
 
 tex_parser_opendetex $SRC $PLAINTEX_FILE $MATCHER_FILE
+type_checker_hunspell $PLAINTEX_FILE $ERRORED_FILE
+
+cat $ERRORED_FILE
 
 echo "$(config_get typeChecker)"
 
