@@ -22,6 +22,7 @@ Options:\n
 -h, --help: get this help\n
 -a, --all: Clean/Check also hidden files and hidden directories\n
 -c, --clean: Remove all .diff in the . directiory and sub-directories\n
+    --config [FILE]: select a config file to use
 -d, --dict [FILE]: Create a dict from FILE
 -o, --clean-only: Do not generate the ${DIFF_EXT}\n
 -m, --modified: Will report only the modified .diff (cannot the .diff)\n
@@ -48,6 +49,15 @@ LIST_DICT=""
 DICT="dict_texspell"
 N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
+PATH_CONFIG="$HOME/.config/texspell.cfg"
+
+# Config
+typeset -A CONFIG
+CONFIG=(
+  [HOST]="0.0.0.0"
+  [LANGUAGETOOLS]="TRUE"
+)
+
 
 ##################
 # REGEX PATTERNS #
@@ -104,6 +114,16 @@ while test $# -gt 0; do
       if [ -f "$2" ]; then
         MAKE_DICT=1
         LIST_DICT="$2"
+      else
+        echo "\"$2\" is not a config file"
+        exit 1
+      fi
+      shift
+      shift
+      ;;
+    --config)
+      if [ -f "$2" ]; then
+        PATH_CONFIG="$2"
       else
         echo "Dictonary \"$2\" is not a file"
         exit 1
@@ -534,6 +554,23 @@ function report_file {
 
 # Before is old function
 
+# Load config file into config array
+# It will only override config variables that are present in the files
+# and currently exist
+# 1 - Path to any config file
+#
+# R - Nothing
+function load_config {
+  local CONF_FILE=$1
+  for KEY in "${!CONFIG[@]}"; do
+    # Only select last matching pattern in config file
+    VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" $CONF_FILE | tail -n -1)
+    if [ ! -z $VALUE ]; then
+      CONFIG[$KEY]="$VALUE"
+    fi
+  done
+}
+
 ##################
 # Texfile parser #
 ##################
@@ -566,12 +603,14 @@ if [ ".${SRC#*.}" != $TEX_EXT ]; then
   exit 1
 fi
 
+load_config $PATH_CONFIG
+
 PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
 
 tex_parser_opendetex $SRC $PLAINTEX_FILE $MATCHER_FILE
 
-
+echo "${CONFIG[HOST]}"
 
 
 exit 0

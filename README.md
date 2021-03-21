@@ -62,6 +62,11 @@ autoload -U compinit
 compinit
 ```
 
+## Configuration
+Defaults variable will be load from `/etc/texspell.cfg`. The variable will be loaded from `$HOME/.config/texspell.cfg` exist if the file exist. You can also specify another config file with `--config`.
+
+
+
 # Coding style
 
 * Variable names should use capital letters and underscores only

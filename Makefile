@@ -1,4 +1,5 @@
 DESTDIR = /usr/local/bin
+DESTDIRCONFIG = /etc
 COMPDIRBASH = $(shell pkg-config --variable=completionsdir bash-completion)
 COMPDIRZSH = /usr/local/share/zsh/site-functions
 COMPDIRZSHTARGET = $(COMPDIRZSH)-$(wildcard $(COMPDIRZSH))
