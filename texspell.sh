@@ -49,8 +49,15 @@ LIST_DICT=""
 DICT="dict_texspell"
 N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
-PATH_DEFAULT_CONFIG="/etc/texspell.cfg"
 PATH_CONFIG="$HOME/.config/texspell.cfg"
+
+# Config
+typeset -A CONFIG
+CONFIG=(
+  [HOST]="0.0.0.0"
+  [LANGUAGETOOLS]="TRUE"
+)
+
 
 ##################
 # REGEX PATTERNS #
@@ -547,25 +554,21 @@ function report_file {
 
 # Before is old function
 
-# Search for a variable name in a file
-# 1 - path to file
-# 2 - variable  name
+# Load config file into config array
+# It will only override config variables that are present in the files
+# and currently exist
+# 1 - Path to any config file
 #
-# R - the variable or undefined
-config_read_file() {
-    (grep -E "^${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") | head -n 1 | cut -d '=' -f 2-;
-}
-
-# Search in the configs file for a variable
-# 1 - Name of the variable
-#
-# R - the variable or __UNDEFINED__
-config_get() {
-    val="$(config_read_file "$PATH_CONFIG" "${1}")";
-    if [ "${val}" = "__UNDEFINED__" ]; then
-        val="$(config_read_file "$PATH_DEFAULT_CONFIG" "${1}")";
+# R - Nothing
+function load_config {
+  local CONF_FILE=$1
+  for KEY in "${!CONFIG[@]}"; do
+    # Only select last matching pattern in config file
+    VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" $CONF_FILE | tail -n -1)
+    if [ ! -z $VALUE ]; then
+      CONFIG[$KEY]="$VALUE"
     fi
-    printf -- "%s" "${val}";
+  done
 }
 
 ##################
@@ -600,12 +603,14 @@ if [ ".${SRC#*.}" != $TEX_EXT ]; then
   exit 1
 fi
 
+load_config $PATH_CONFIG
+
 PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
 
 tex_parser_opendetex $SRC $PLAINTEX_FILE $MATCHER_FILE
 
-echo "$(config_get typeChecker)"
+echo "${CONFIG[HOST]}"
 
 
 exit 0
