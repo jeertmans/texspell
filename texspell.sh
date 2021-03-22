@@ -475,7 +475,7 @@ function report_file {
     COLORIZED_ERRORS=""
     for (( i=1; i <= N_LINES ; i++ ))
     do
-      SUGGESTIONS=$(ith_line_file "$TMP_FILE_1" $i)
+      SUGGESTIONS=$(ith_line_file "$TMP_FILE_1" "$i")
 
       if [ -z "${SUGGESTIONS}" ]; then
         j=$((j+1))
