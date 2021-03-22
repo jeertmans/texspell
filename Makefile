@@ -13,7 +13,6 @@ install: ## Installs texspell and Opendetex
 install-texspell: | $(COMPDIRZSHTARGET) ## Installs texspell
 	rm -f ${DESTDIR}/texspell
 	install ./texspell.sh ${DESTDIR}/texspell
-	cp ./conf.cfg.defaults ${DESTDIRCONFIG}/texspell.cfg
 	rm -f ${COMPDIRBASH}/texspell
 	install ./texspell-complete.sh ${COMPDIRBASH}/texspell
 
@@ -30,11 +29,16 @@ uninstall: ## Uninstalls texspell and Opendetex
 
 uninstall-texspell: ## Uninstalls texspell
 	rm -f ${DESTDIR}/texspell
-	rm -f ${DESTDIRCONFIG}/texspell.cfg
 	rm -f ${COMPDIR}/texspell
 
 uninstall-detex: ## Uninstalls Opendetex
 	cd opendetex && $(MAKE) uninstall
+
+check-scripts: ## Runs a shell code checker on every .sh file
+	shellcheck *.sh
+
+correct-scripts: ## Applies a shell code checker on every .sh file
+	shellcheck -f diff *.sh | git apply
 
 # From: https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help: ## Prints this message

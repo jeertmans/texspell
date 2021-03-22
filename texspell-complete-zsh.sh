@@ -15,7 +15,7 @@ args+=(
   '(-v --version)*'{-v,--verbose}'[Version of texpsell]'
 )
 
-tokens=(${(z)BUFFER})
+tokens=("${(z)BUFFER}")
 lastWord="${tokens[-1]}"
 case  "$lastWord" in
   (--verbosity)
@@ -26,7 +26,8 @@ case  "$lastWord" in
   ;;
 esac
 
-_arguments $args[@] && ret=0
+ret=1
+_arguments "$args"[@] && ret=0
 return ret
 
 #doc https://blog.kloetzl.info/how-to-write-a-zsh-completion/

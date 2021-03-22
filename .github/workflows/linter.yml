@@ -1,0 +1,15 @@
+on:
+    pull_request:
+        branch:
+            - main
+
+name: "Code linting"
+
+jobs:
+    shellcheck:
+        name: Shellcheck
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - names: Run ShellCheck
+              uses: ludeeus/action-shellcheck@master

@@ -17,7 +17,6 @@ _texspell()
 --modified
 --verbosity"
 
-  local OLDIFS="$IFS"
   local IFS=$'\n'
 
   if [[ ${cur} == -* ]]; then
@@ -52,7 +51,7 @@ _texspell_bash() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=( $(compgen -W '$( _texspell )' -- $cur) )
+  COMPREPLY=( "$(compgen -W "$( _texspell )" -- "$cur")" )
 }
 
 

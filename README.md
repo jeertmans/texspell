@@ -65,6 +65,8 @@ compinit
 ## Configuration
 Defaults variable will be load from `/etc/texspell.cfg`. The variable will be loaded from `$HOME/.config/texspell.cfg` exist if the file exist. You can also specify another config file with `--config`.
 
+## Development
+To participate to the project make sure to also install `spellcheck` which is our linter for this project
 
 
 # Coding style
