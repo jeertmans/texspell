@@ -26,7 +26,7 @@ case  "$lastWord" in
   ;;
 esac
 
-_arguments $args[@] && ret=0
+_arguments "$args"[@] && ret=0
 return ret
 
 #doc https://blog.kloetzl.info/how-to-write-a-zsh-completion/

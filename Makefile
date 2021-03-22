@@ -37,6 +37,9 @@ uninstall-detex: ## Uninstalls Opendetex
 check-scripts: ## Runs a shell code checker on every .sh file
 	shellcheck *.sh
 
+correct-scripts: ## Applies a shell code checker on every .sh file
+	shellcheck -f diff *.sh | git apply
+
 # From: https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help: ## Prints this message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
