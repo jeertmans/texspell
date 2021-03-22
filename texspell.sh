@@ -692,7 +692,6 @@ tex_parser_opendetex "$SRC" "$PLAINTEX_FILE" "$MATCHER_FILE"
 type_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
 cat "$ERRORED_FILE"
 
-
 #echo "${CONFIG[HOST]}"
 
 
