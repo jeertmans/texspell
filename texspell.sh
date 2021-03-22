@@ -69,7 +69,7 @@ CONFIG=(
 #   \2 - filename
 #   \3 - linenumber
 #   \4 - line content (possibly empty)
-DETEX_1_PATTERN="((.*.tex):([0-9]+):)(.*)"
+#DETEX_1_PATTERN="((.*.tex):([0-9]+):)(.*)"
 
 #################
 # Flags handler #
@@ -169,9 +169,9 @@ function find_files {
     shift
   done
   if [ "$HID" -eq 1 ]; then
-    echo $(find "$SRC" -type f -iname "*${EXT}" "$IGN")
+    find "$SRC" -type f -iname "*${EXT}" "$IGN"
   else
-    echo $(find "$SRC" -type f -iname "*${EXT}" "$IGN" -not -path "*/\.*")
+    find "$SRC" -type f -iname "*${EXT}" "$IGN" -not -path "*/\.*"
   fi
 }
 
@@ -191,7 +191,7 @@ function remove_files {
 # R - The input with colors removed
 function remove_colors {
   local IN=$1
-  $(sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" "$IN")
+  sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" "$IN"
 }
 
 # Substitute regex pattern
@@ -204,7 +204,7 @@ function regex_sub {
   local STR=$1
   local PAT=$2
   local SUB=$3
-  echo $(echo "${STR}" | sed -E "s/${PAT}/${SUB}/g")
+  echo "${STR}" | sed -E "s/${PAT}/${SUB}/g"
 }
 
 # Substitute regex pattern in file (in-place)
@@ -261,7 +261,7 @@ function lines_with_errors {
 function ith_line_file {
   local FILE=$1
   local I=$2
-  echo "$(sed "${I}q;d" "$FILE")"
+  sed "${I}q;d" "$FILE"
 }
 
 # Return the line number of the first line matching a given string
@@ -273,15 +273,15 @@ function first_match_lineno_file {
   local MATCH=$1
   local FILE=$2
   #echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
-  echo $(grep -F -o -m 1 -h -n -e "$(strip_leading_spaces "${MATCH}")" "$FILE" | cut -f1 -d:)
+  grep -F -o -m 1 -h -n -e "$(strip_leading_spaces "${MATCH}")" "$FILE" | cut -f1 -d:
 }
 
 # Will update $DICT with respect to $1
 # 1 - File with the list of word into the dict
 #
-# R -
+# R - Nothing
 function create_dict {
-  SORTED=$(cat "$1" | sort | uniq) 
+  SORTED=$(< "$1" sort | uniq) 
   echo "$SORTED" >&2
   echo "$SORTED" | wc -l > $DICT$DIC_EXT
   echo "$SORTED" >> $DICT$DIC_EXT
@@ -292,7 +292,7 @@ function create_dict {
 #
 # R - String cleaned
 function strip_leading_spaces {
-  echo $(echo "$1" | sed "s/ *$//g")
+  echo "$1" | sed "s/ *$//g"
 }
 
 # Replace all \ by \\
@@ -300,7 +300,8 @@ function strip_leading_spaces {
 #
 # R - Replaced string
 function replace_backslash_by_double {
-  echo "$(echo "$1" | sed 's/\\/\\\\/g')"
+  echo "${1//\\/\\\\\\}"
+  #echo "$1" | sed "s/\\/\\\\/g'
 }
 
 # Clean string for echo -e
@@ -308,7 +309,7 @@ function replace_backslash_by_double {
 #
 # R - String cleaned
 function clean_for_echo {
-  echo $(replace_backslash_by_double "$(strip_leading_spaces "$1")")
+  replace_backslash_by_double "$(strip_leading_spaces "$1")"
 }
 
 # Keep only x first words
@@ -317,7 +318,7 @@ function clean_for_echo {
 #
 # R - X first words
 function keep_x_first_words {
-  echo $(echo "$1" | tr ' ' '\n' | head -"${2}" | xargs -n"${2}")
+  echo "$1" | tr ' ' '\n' | head -"${2}" | xargs -n"${2}"
 }
 
 # Keep only x last words
@@ -326,7 +327,7 @@ function keep_x_first_words {
 #
 # R - X last words
 function keep_x_last_words {
-  echo $(echo "$1" | tr ' ' '\n' | tail -"${2}" | xargs -n"${2}")
+  echo "$1" | tr ' ' '\n' | tail -"${2}" | xargs -n"${2}"
 }
 
 # Create a new tmp file 
@@ -334,7 +335,7 @@ function keep_x_last_words {
 #
 # R - path tho file
 function create_file {
-  echo $(mktemp -p "${TEMP_DIR}" "${1}_XXXXX.tmp")
+  mktemp -p "${TEMP_DIR}" "${1}_XXXXX.tmp"
 }
 
 # Reduce string to the first X words. It will also add [...] if word are removed
@@ -346,8 +347,9 @@ function reduce_string_size_first {
   local STR=$1
   local LEN=$2
 
-  local OUT=$(keep_x_first_words "$STR" "$LEN")
-  if [ $(echo "$OUT" | wc -w) -eq $(echo "$STR" | wc -w) ]; then
+  local OUT
+  OUT=$(keep_x_first_words "$STR" "$LEN")
+  if [ "$(echo "$OUT" | wc -w)" -eq "$(echo "$STR" | wc -w)" ]; then
     echo "$STR"
   else
     local DEB=""
@@ -371,8 +373,9 @@ function reduce_string_size_last {
   local STR=$1
   local LEN=$2
 
-  local OUT=$(keep_x_last_words "$STR" "$LEN")
-  if [ $(echo "$OUT" | wc -w) -eq $(echo "$STR" | wc -w) ]; then
+  local OUT
+  OUT=$(keep_x_last_words "$STR" "$LEN")
+  if [ "$(echo "$OUT" | wc -w)" -eq "$(echo "$STR" | wc -w)" ]; then
     echo "$STR"
   else
     local DEB=""
@@ -383,7 +386,7 @@ function reduce_string_size_last {
     if [ "${STR:0:1}" == " " ]; then
       DEB=" "
     fi
-    echo "$DEB[...] $OUT$END"
+    echo "${DEB}[...] $OUT$END"
   fi
 }
 
@@ -396,9 +399,11 @@ function reduce_string_size {
   local STR=$1
   local LEN=$2
 
-  local FIRST=$(keep_x_first_words "$STR" "$LEN")
-  local LAST=$(keep_x_last_words "$STR" "$LEN")
-  if [ $(($(echo "$FIRST" | wc -w) + $(echo "$LAST" | wc -w))) -lt $(echo "$STR" | wc -w) ]; then
+  local FIRST
+  FIRST=$(keep_x_first_words "$STR" "$LEN")
+  local LAST
+  FIRST=$(keep_x_last_words "$STR" "$LEN")
+  if [ $(($(echo "$FIRST" | wc -w) + $(echo "$LAST" | wc -w))) -lt "$(echo "$STR" | wc -w)" ]; then
     local OUT="$FIRST [...] $LAST"
     local DEB=""
     local END=""
@@ -420,26 +425,32 @@ function reduce_string_size {
 # R - "TMP_FILE_DIFF" "TMP_FILE_STDOUT" "L_ERRORS" "L_UNKNOWN_WORDS"
 function report_file {
   local FILE=$1
-  local FILENAME=$(basename "$FILE")
+  local FILENAME
+  FILENAME=$(basename "$FILE")
 
   local L_ERRORS=0
   local L_UNKNOWN_WORDS=0
 
   # Generate TMP 1
-  local TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
+  local TMP_FILE_1
+  TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
   errors_and_suggestions "$FILE" "$TMP_FILE_1"
 
   
   # Generate TMP 2
-  local TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
+  local TMP_FILE_2
+  TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
   lines_with_errors "$FILE" "$TMP_FILE_2" 
 
-  local TMP_FILE_DIFF=$(mktemp -p "${TEMP_DIR}" "${FILENAME}3_XXXXX.tmp")
+  local TMP_FILE_DIFF
+  TMP_FILE_DIFF=$(mktemp -p "${TEMP_DIR}" "${FILENAME}3_XXXXX.tmp")
   
-  local TMP_FILE_STDOUT=$(mktemp -p "${TEMP_DIR}" "${FILENAME}5_XXXXX.tmp")
+  local TMP_FILE_STDOUT
+  TMP_FILE_STDOUT=$(mktemp -p "${TEMP_DIR}" "${FILENAME}5_XXXXX.tmp")
 
   # Count the # of lines (errors) in file
-  local N_LINES=$(wc -l "$TMP_FILE_1" | awk '{ print $1 }') 
+  local N_LINES
+  N_LINES=$(wc -l "$TMP_FILE_1" | awk '{ print $1 }') 
   
   if [ "$N_LINES" -eq 1 ]; then 
     if [[ $(cat "$TMP_FILE_1") == "" ]]; then
@@ -454,7 +465,7 @@ function report_file {
     fi
 
   else
-    local DIFF_FILE="${FILE}${DIFF_EXT}"
+    #local DIFF_FILE="${FILE}${DIFF_EXT}"
     echo "Created by texspell">> "$TMP_FILE_DIFF"
 
     j=0
@@ -462,7 +473,7 @@ function report_file {
     POS=0
     COLORIZED_LINE=""
     COLORIZED_ERRORS=""
-    for (( i=1; i <= $N_LINES ; i++ ))
+    for (( i=1; i <= N_LINES ; i++ ))
     do
       SUGGESTIONS=$(ith_line_file "$TMP_FILE_1" $i)
 
@@ -471,16 +482,18 @@ function report_file {
       else
         if [ $j -gt $k ]; then
 
-          if [ "$VERBOSITY" -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
+          if [ "$VERBOSITY" -ge 2 ] && [ -n "${COLORIZED_ERRORS}" ]; then
             if [ "$VERBOSITY" -lt 3 ]; then
               COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
             else
               COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
             fi
             COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
-            echo -e "$COLORIZED_LINE" >> "$TMP_FILE_STDOUT"
-            echo -e $COLORIZED_ERRORS >> "$TMP_FILE_STDOUT"
-            echo "-----" >> "$TMP_FILE_STDOUT"
+            {
+              echo -e "$COLORIZED_LINE"
+              echo -e "$COLORIZED_ERRORS"
+              echo "-----"
+            } >> "$TMP_FILE_STDOUT"
             COLORIZED_LINE=""
             COLORIZED_ERRORS=""
             POS=0
@@ -489,9 +502,11 @@ function report_file {
           ERRORNOUS_LINE="$(ith_line_file "$TMP_FILE_2" $j)"
           LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" "$FILE")
 
-          echo "----" >> "$TMP_FILE_DIFF"
-          echo "In line ${LINE_NO}:" >> "$TMP_FILE_DIFF"
-          echo "$ERRORNOUS_LINE" >> "$TMP_FILE_DIFF"
+          {
+            echo "----"
+            echo "In line ${LINE_NO}:"
+            echo "$ERRORNOUS_LINE"
+          } >> "$TMP_FILE_DIFF"
           k=$j
         fi
         
@@ -526,7 +541,7 @@ function report_file {
       fi
     done
     # Print last line
-    if [ "$VERBOSITY" -ge 2 ] && [ ! -z "${COLORIZED_ERRORS}" ]; then
+    if [ "$VERBOSITY" -ge 2 ] && [ -n "${COLORIZED_ERRORS}" ]; then
       if [ "$VERBOSITY" -lt 3 ]; then
         COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
       else
@@ -544,7 +559,8 @@ function report_file {
     sed -i "2iNumber of errors: $L_ERRORS" "$TMP_FILE_DIFF"
     sed -i "3iNumber of unknown words: $L_UNKNOWN_WORDS" "$TMP_FILE_DIFF"
     # Shasum on file with errors
-    local SHASUM=$(sha256sum "$TMP_FILE_2")
+    local SHASUM
+    SHASUM=$(sha256sum "$TMP_FILE_2")
     sed -i "2iDate:  $(date)" "$TMP_FILE_DIFF"
     sed -i "5iShasum: $SHASUM" "$TMP_FILE_DIFF"
 
@@ -565,7 +581,7 @@ function load_config {
   for KEY in "${!CONFIG[@]}"; do
     # Only select last matching pattern in config file
     VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" "$CONF_FILE" | tail -n -1)
-    if [ ! -z "$VALUE" ]; then
+    if [ -n "$VALUE" ]; then
       CONFIG[$KEY]="$VALUE"
     fi
   done
@@ -647,20 +663,22 @@ if [ $SPELL -eq 1 ]; then
   L_ERRORS=0
   L_UNKNOWN_WORDS=0
   if [ $REPORT -eq 1 ]; then 
-    echo "Start " $(date) > $REPORT_FILE 
-    echo "" >> $REPORT_FILE
+    {
+      echo "Start " "$(date)"
+      echo ""
+    } > $REPORT_FILE
   fi
     
   FILES=$(find_files "$SRC" $TEX_EXT $CHECK_HIDDEN $ignore)
   
-  FILES_LIST=($(echo "$FILES" | sed "s/ /\n/g"))
+  mapfile -t array FILES_LIST < <(echo "$FILES" | sed "s/ /\n/g")
   N_FILES=${#FILES_LIST[@]}
   
   if [ "$VERBOSITY" -ge 1 ]; then
     echo "Processing ${N_FILES} file(s)..."
   fi
 
-  for FILE in ${FILES_LIST[@]}; do
+  for FILE in "${FILES_LIST[@]}"; do
     # Create a reporting for each file
     echo ""
     echo "Processing $FILE"
@@ -672,43 +690,43 @@ if [ $SPELL -eq 1 ]; then
 
     if [[ ONLY_MODIFIED -eq 1 ]]; then
       if [[ -f "$FILE$DIFF_EXT" ]]; then
-        if [ $(wc -l "$TMP_FILE_DIFF" | awk '{ print $1 }') -ne 0 ]; then
+        if [ "$(wc -l "$TMP_FILE_DIFF" | awk '{ print $1 }')" -ne 0 ]; then
           OLD_SHASUM=$(ith_line_file "$FILE"$DIFF_EXT 5 | cut -f2 -d" ")
           NEW_SHASUM=$(ith_line_file "$TMP_FILE_DIFF" 5 | cut -f2 -d" ")
-          if [[ $OLD_SHASUM == $NEW_SHASUM ]]; then
+          if [[ $OLD_SHASUM == "$NEW_SHASUM" ]]; then
             echo "$FILE is unchanged and contains errors"
-            UNCHANGED_FILES=$(($UNCHANGED_FILES + 1))
+            UNCHANGED_FILES=$((UNCHANGED_FILES + 1))
             if [ $REPORT -eq 1 ]; then
               echo "$FILE is unchanged" >> $REPORT_FILE
             fi
           else
             cat "$TMP_FILE_STDOUT"
             cat "$TMP_FILE_DIFF" > "$FILE"$DIFF_EXT
-            ERRORS=$(($ERRORS + $L_ERRORS))
-            UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $L_UNKNOWN_WORDS))
+            ERRORS=$((ERRORS + L_ERRORS))
+            UNKNOWN_WORDS=$((UNKNOWN_WORDS + L_UNKNOWN_WORDS))
             if [ $REPORT -eq 1 ]; then
               echo "$FILE  Errors: $L_ERRORS | Unknown words: $L_UNKNOWN_WORDS" >> $REPORT_FILE
             fi
           fi
         else
           cat "$TMP_FILE_STDOUT"
-          EMPTY_FILES=$(($EMPTY_FILES + 1))
+          EMPTY_FILES=$((EMPTY_FILES + 1))
           if [ $REPORT -eq 1 ]; then
             echo "$FILE is without errors" >> $REPORT_FILE
           fi
         fi
       else 
-        if [ $(wc -l "$TMP_FILE_DIFF" | awk '{ print $1 }') -ne 0 ]; then
+        if [ "$(wc -l "$TMP_FILE_DIFF" | awk '{ print $1 }')" -ne 0 ]; then
           cat "$TMP_FILE_STDOUT"
           cat "$TMP_FILE_DIFF" > "$FILE"$DIFF_EXT
-          ERRORS=$(($ERRORS + $L_ERRORS))
-          UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $L_UNKNOWN_WORDS))
+          ERRORS=$((ERRORS + L_ERRORS))
+          UNKNOWN_WORDS=$((UNKNOWN_WORDS + L_UNKNOWN_WORDS))
           if [ $REPORT -eq 1 ]; then
             echo "$FILE  Errors: $L_ERRORS | Unknown words: $L_UNKNOWN_WORDS" >> $REPORT_FILE
           fi
         else
           echo "$FILE$TEX_EXT is unchanged and without errors"
-          UNCHANGED_FILES=$(($UNCHANGED_FILES + 1))
+          UNCHANGED_FILES=$((UNCHANGED_FILES + 1))
           if [ $REPORT -eq 1 ]; then
             echo "$FILE is unchanged" >> $REPORT_FILE
           fi
@@ -716,15 +734,15 @@ if [ $SPELL -eq 1 ]; then
       fi
     else
       cat "$TMP_FILE_STDOUT"
-      if [ $(wc -l "$TMP_FILE_DIFF" | awk '{ print $1 }') -ne 0 ]; then
+      if [ "$(wc -l "$TMP_FILE_DIFF" | awk '{ print $1 }')" -ne 0 ]; then
         cat "$TMP_FILE_DIFF" > "$FILE"$DIFF_EXT
-        ERRORS=$(($ERRORS + $L_ERRORS))
-        UNKNOWN_WORDS=$(($UNKNOWN_WORDS + $L_UNKNOWN_WORDS))
+        ERRORS=$((ERRORS + L_ERRORS))
+        UNKNOWN_WORDS=$((UNKNOWN_WORDS + L_UNKNOWN_WORDS))
         if [ $REPORT -eq 1 ]; then
           echo "$FILE  Errors: $L_ERRORS | Unknown words: $L_UNKNOWN_WORDS" >> $REPORT_FILE
         fi
       else
-        EMPTY_FILES=$(($EMPTY_FILES + 1))
+        EMPTY_FILES=$((EMPTY_FILES + 1))
         if [ $REPORT -eq 1 ]; then
           echo "$FILE is without errors" >> $REPORT_FILE
         fi
@@ -735,14 +753,16 @@ if [ $SPELL -eq 1 ]; then
   if [ $REPORT -eq 1 ]; then
     # Reporting summary of results in a file
     sed -i "1 aEnd    $(date)"  $REPORT_FILE
-    echo "" >> $REPORT_FILE
-    echo "# of files with error(s): " $(($N_FILES-$EMPTY_FILES-$UNCHANGED_FILES)) >> $REPORT_FILE
-    echo "# of files without error: " $EMPTY_FILES >> $REPORT_FILE
-    if [ $ONLY_MODIFIED -eq 1 ]; then
-      echo "# of unmodified files: " $UNCHANGED_FILES >> $REPORT_FILE
-    fi
-    echo "# of error(s): " $ERRORS >> $REPORT_FILE
-    echo "# of unknown words: " $UNKNOWN_WORDS >> $REPORT_FILE
+    {
+      echo ""
+      echo "# of files with error(s): " $((N_FILES-EMPTY_FILES-UNCHANGED_FILES))
+      echo "# of files without error: " $EMPTY_FILES
+      if [ $ONLY_MODIFIED -eq 1 ]; then
+        echo "# of unmodified files: " $UNCHANGED_FILES
+      fi
+      echo "# of error(s): " $ERRORS
+      echo "# of unknown words: " $UNKNOWN_WORDS
+    } >> "$REPORT_FILE"
     if [ "$VERBOSITY" -ge 1 ]; then
       echo ""
       echo "Report summary:"
