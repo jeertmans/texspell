@@ -35,10 +35,10 @@ uninstall-detex: ## Uninstalls Opendetex
 	cd opendetex && $(MAKE) uninstall
 
 check-scripts: ## Runs a shell code checker on every .sh file
-	shellcheck *.sh
+	shellcheck -e 1071 *.sh
 
 correct-scripts: ## Applies a shell code checker on every .sh file
-	shellcheck -f diff *.sh | git apply
+	shellcheck -f diff -e 1071 *.sh | git apply
 
 # From: https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help: ## Prints this message

@@ -1,1 +1,12 @@
 # complete this with keyword / argument for shellcheck
+
+# https://github.com/koalaman/shellcheck/wiki/SC1071
+exclude=SC1071
+# does not work here... have to call with -e 1071 instead
+
+# https://github.com/koalaman/shellcheck/wiki/SC2001
+disable=SC2001
+
+# https://github.com/koalaman/shellcheck/wiki/SC2120
+disable=SC2119
+disable=SC2120
