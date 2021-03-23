@@ -604,14 +604,15 @@ function tex_parser_opendetex {
 }
 
 ##################
-# Type checker #
+# Spell checker #
 ##################
+# Function that will provide a list of error of a plaintext file
 # 1 - Path to a plaintex file to correct
 # 2 - Path to a tmp file with
 #   * Line of error
 #   * Offset and range of the error
 #   * type of error + proposition to correct
-function type_checker_hunspell {
+function spell_checker_hunspell {
   local IN=$1
   local OUT=$2
   local FILE=$1
@@ -705,7 +706,7 @@ MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
 tex_parser_opendetex "$SRC" "$PLAINTEX_FILE" "$MATCHER_FILE"
-type_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
+spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
 cat "$ERRORED_FILE"
 
 #echo "${CONFIG[HOST]}"
