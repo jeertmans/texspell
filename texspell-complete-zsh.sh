@@ -1,3 +1,4 @@
+#!/bin/zsh
 #compdef texspell
 
 typeset -A opt_args
@@ -26,8 +27,7 @@ case  "$lastWord" in
   ;;
 esac
 
-ret=1
-_arguments "$args"[@] && ret=0
+_arguments "${args[@]}" && ret=0
 return ret
 
 #doc https://blog.kloetzl.info/how-to-write-a-zsh-completion/

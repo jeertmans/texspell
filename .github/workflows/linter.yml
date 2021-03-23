@@ -1,6 +1,6 @@
 on:
     pull_request:
-        branch:
+        branches:
             - main
 
 name: "Code linting"
@@ -11,5 +11,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - names: Run ShellCheck
+            - name: Run ShellCheck
               uses: ludeeus/action-shellcheck@master
+              env:
+                SHELLCHECK_OPTS: -e SC1071
