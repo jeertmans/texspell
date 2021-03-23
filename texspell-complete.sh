@@ -17,7 +17,6 @@ _texspell()
 --modified
 --verbosity"
 
-  #local OLDIFS="$IFS"
   local IFS=$'\n'
 
   if [[ ${cur} == -* ]]; then

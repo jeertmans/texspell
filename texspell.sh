@@ -603,6 +603,86 @@ function tex_parser_opendetex {
 
 }
 
+##################
+# Spell checker #
+##################
+# Function that will provide a list of error of a plaintext file
+# 1 - Path to a plaintex file to correct
+# 2 - Path to a tmp file with
+#   * Line of error
+#   * Offset and range of the error
+#   * type of error + proposition to correct
+function spell_checker_hunspell {
+  local IN=$1
+  local OUT=$2
+  local FILE=$1
+  local FILENAME
+  FILENAME=$(basename "$FILE")
+
+
+  local FILE_ERROR_AND_SUGG
+  FILE_ERROR_AND_SUGG=$(create_file "errors_and_suggestions")
+  local FILE_LINES_ERROR
+  FILE_LINES_ERROR=$(create_file "lines_with_errors")
+  errors_and_suggestions "$IN" "$FILE_ERROR_AND_SUGG"
+  lines_with_errors "$IN" "$FILE_LINES_ERROR" 
+
+  local N_LINES
+  N_LINES=$(wc -l "$FILE_ERROR_AND_SUGG" | awk '{ print $1 }') 
+  
+  # If the file contain only an empty string -> no error
+  if [ "$N_LINES" -eq 1 ]; then 
+    if [[ $(cat "$FILE_ERROR_AND_SUGG") == "" ]]; then
+      N_LINES=0
+      cat /dev/null > "$OUT"
+    fi
+  fi
+
+  # No errors
+  if [ $N_LINES -eq 0 ]; then
+    return  
+  else
+    j=0
+    k=-1
+    POS=0
+    for (( i=1; i < N_LINES ; i++ ))
+    do
+      SUGGESTIONS=$(ith_line_file "$FILE_ERROR_AND_SUGG" "$i")
+      # If suggestion is empty -> other line in the plaintex file
+      if [ -z "${SUGGESTIONS}" ]; then
+        j=$((j+1))
+      else
+        # For the first error of each errored lines
+        if [ $j -gt $k ]; then
+          ERRORNOUS_LINE="$(ith_line_file "$FILE_LINES_ERROR" $j)"
+          LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" "$IN")
+
+          echo "" >> "$OUT"
+          echo "${LINE_NO}" >> "$OUT"
+          k=$j
+        fi
+        if [[ ${SUGGESTIONS:0:1} == "V" ]]; then
+          MATCH="(V([0-9]+):\s)(\S+)(\s=>\s)(.+)"
+          MATCH_N_PROP="(([0-9]+))"
+          MATCH_PROPS="(,\s)"
+          SUBS2="\2"
+          SUBS3="\3"
+        
+          V_POSITION=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS2}")
+          ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
+          ERRORNOUS=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "\5")
+          NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o)
+          PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" ":" | cut -f2- -d ' ')
+          echo "$V_POSITION:${#ERRORNOUS_WORD}:dict:$NUMBER_PROP:$PROPS" >> "$OUT"
+        elif [[ ${SUGGESTIONS:0:1} == "#" ]]; then
+          WORD=$(echo "$SUGGESTIONS" | cut -f2 -d ' ')
+          V_POSITION=$(echo "$SUGGESTIONS" | cut -f3 -d ' ')
+          echo "$V_POSITION:${#WORD}:unknown" >> "$OUT"
+        fi
+      fi
+    done
+  fi
+}
 
 ####################
 # Script execution #
@@ -623,10 +703,13 @@ load_config "$PATH_CONFIG"
 
 PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
+ERRORED_FILE=$(create_file "errored_input")
 
 tex_parser_opendetex "$SRC" "$PLAINTEX_FILE" "$MATCHER_FILE"
+spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
+cat "$ERRORED_FILE"
 
-echo "${CONFIG[HOST]}"
+#echo "${CONFIG[HOST]}"
 
 
 exit 0

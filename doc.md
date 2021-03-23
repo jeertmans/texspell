@@ -13,7 +13,7 @@ Note: path
 - a path to a file where the function will write the conversion of the the tex to plaintext (remove everything which will not be displayed in the pdf)
 - a path to a file where the function will write the match between the file and the line number of the .tex to the line number of the plain text
 
-## Type checker
+## spell checker
 ### input
 - a path to a plaintext file to correct
 - a path to a file where the function will list the error of the plaintext file. For each error we need to know 
