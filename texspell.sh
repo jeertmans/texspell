@@ -587,6 +587,144 @@ function load_config {
   done
 }
 
+
+# Function to raw urlencode
+# 1 - string to urlencode
+#
+# R - string urlencoded
+function rawurlencode {
+  # We need this function because curl --data-encoded not work on \n
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
+  done
+  echo "${encoded}"    # You can either set a return variable (FASTER) 
+}
+
+
+# Simple function to make request to languageTool
+# 1 - The text to check with languageTool
+#
+# R - The response of languagetool
+function request_languagetool
+{
+  VALUE=$(curl -s --data "language=en-US&data=$(rawurlencode "$1")" http://localhost:8081/v2/check)
+  echo "$VALUE"
+}
+
+# Will compute the number of \n a input text with a limit of chars to check
+# 1 - The text to check
+# 2 - The limit of char
+# 
+# R - The number of \n
+function get_number_new_line {
+  echo "$(echo "$1" | cut -c1-$2| grep -o '\n' | wc -l)"
+}
+
+# Will compute the chars on the $2 lines of $1. New lines are made with \n
+# 1 - SRC
+# 3 - C
+#
+# R - Number of char
+function get_nb_char_up_to_line {
+  local CUTTED
+  CUTTED=$(echo "$1" | grep -o '.*\n')
+  echo ${#CUTTED}
+}
+
+# A function to cut the differents errors and process them
+# 1 - The string representing a json (after matches from the response of languageTool
+# 2 - the Path to write the errors 
+# 3 - Offset of number of line
+# 4 - Path to true plaintext
+#
+# R - Nothing
+function split_and_process_languagetool {
+  local IN=$1
+  local OUT=$2
+  local OFFSET=$3
+  local SRC=$4
+
+  local ERRORS
+  ERRORS=$(echo "$IN" | grep -o 'matches.*' | cut -f2- -d:)
+  ERRORS=${ERRORS%?}
+  #echo "<$ERRORS>" >&2
+
+
+  if [[ $ERRORS == "[]" ]]; then
+    return
+  fi 
+
+    
+    local LINENUMBER
+    local OLDLINENUMBER
+    OLDLINENUMBER=-1
+    delimiter="message"
+    s=$ERRORS$delimiter
+    ERROR=""
+    while [[ $s ]]; do
+    ERROR=( "${s%%"$delimiter"*}" );
+
+      if [[ $ERROR == "[{\"" ]]; then
+        s=${s#*"$delimiter"};
+        ERROR=( "${s%%"$delimiter"*}" );
+      fi
+
+      local LEN_ERR
+      local POS_ERR
+      POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+      LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+
+      local REDUCED_SRC
+      REDUCED_SRC=$(echo "$SRC" | cut -c1-$POS_ERR)
+      echo "$REDUCED_SRC" >&2
+      echo "-------"
+      local REDUCED_OFFSET
+      REDUCED_OFFSET=$(get_nb_char_up_to_line "$REDUCED_SRC" "$LINENUMBER")
+      LINENUMBER=$(get_number_new_line "$SRC" "$POS_ERR")
+      POS_ERR=$((POS_ERR - REDUCED_OFFSET))
+      if [ "$LINENUMBER" != "$OLDLINENUMBER" ]; then
+        if [ "$OLDLINENUMBER" != "-1" ]; then
+          echo "" >> "$OUT"
+          echo "---- " >> "$OUT"
+        fi
+        OLDLINENUMBER=$LINENUMBER
+        LINENUMBER=$((LINENUMBER + OFFSET))
+        echo "In line ${LINENUMBER}:" >> "$OUT"
+      fi
+      local REPLS
+      local NB_REPL
+      NB_REPL=0
+      local REPL
+      REPL=""
+
+      REPLS=$(echo "$ERROR" | grep -o 'replacements":.*' | cut -f2- -d '[' | cut -f1 -d ']')
+      NB_REPL=$(echo "$REPLS" | grep -o '{' | wc -l)
+      REPL=$(echo "$REPLS" | sed 's/{"value":"//g' | sed 's/"},/:/g' | sed 's/"}//g' )
+      
+
+      local MSG
+      MSG=$(echo "$ERROR" | grep -o '.*","shortMessage' | sed 's/":"//' | sed 's/","shortMessage//')
+
+#      echo "$ERROR" >&2
+
+      echo "$POS_ERR:$LEN_ERR:$MSG:$NB_REPL:$REPL" >> "$OUT"
+
+      # Go through the  
+      s=${s#*"$delimiter"};
+    done;
+  
+}
+
 ##################
 # Texfile parser #
 ##################
@@ -612,6 +750,7 @@ function tex_parser_opendetex {
 #   * Line of error
 #   * Offset and range of the error
 #   * type of error + proposition to correct
+
 function spell_checker_hunspell {
   local IN=$1
   local OUT=$2
@@ -673,15 +812,61 @@ function spell_checker_hunspell {
           ERRORNOUS=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "\5")
           NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o)
           PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" ":" | cut -f2- -d ' ')
-          echo "$V_POSITION:${#ERRORNOUS_WORD}:dict:$NUMBER_PROP:$PROPS" >> "$OUT"
+          echo "$V_POSITION:${#ERRORNOUS_WORD}:Word not in the dict:$NUMBER_PROP:$PROPS" >> "$OUT"
         elif [[ ${SUGGESTIONS:0:1} == "#" ]]; then
           WORD=$(echo "$SUGGESTIONS" | cut -f2 -d ' ')
           V_POSITION=$(echo "$SUGGESTIONS" | cut -f3 -d ' ')
-          echo "$V_POSITION:${#WORD}:unknown" >> "$OUT"
+          echo "$V_POSITION:${#WORD}:No match for the word:0" >> "$OUT"
         fi
       fi
     done
   fi
+}
+
+function spell_checker_languagetool {
+  local IN=$1
+  local OUT=$2
+  local N_LINES
+  N_LINES=$(wc -l "$IN" | awk '{ print $1 }') 
+
+  local LINE
+  local CHARS_TO_CHECK
+  CHARS_TO_CHECK=""
+  local SIZE_CHARS
+  local SIZE_CHARS_LINE
+  SIZE_CHARS=0
+  SIZE_CHARS_LINE=0
+  
+  local OFFSET
+  OFFSET=0
+  for (( i=1; i < N_LINES ; i++ ))
+  do
+    LINE=$(ith_line_file "$IN" "$i")
+    SIZE_CHARS_LINE=${#LINE}
+
+    # Limit by languageTool
+    if [[ $((SIZE_CHARS_LINE + SIZE_CHARS)) -le 10000 ]]; then
+      SIZE_CHARS=$((SIZE_CHARS + SIZE_CHARS_LINE))
+      CHARS_TO_CHECK+="\n"$LINE
+    else
+      # Do correction
+
+      OFFSET=$i
+      CHARS_TO_CHECK=$LINE
+      SIZE_CHARS=$SIZE_CHARS_LINE
+    fi
+
+  done
+  #echo -e "$CHARS_TO_CHECK"
+  RES="$(request_languagetool "$CHARS_TO_CHECK")"
+  
+  #replace_value=$(echo $CHARS_TO_CHECK | sed -f /usr/lib/ddns/url_escape.sed)
+  #echo "$replace_value" >&2
+  split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$CHARS_TO_CHECK"
+  #VAL="$(request_languagetool "Chapapa\nboyo")"
+  #VAL=$(echo "$VAL" | grep -o 'matches.*' | cut -f2- -d:)
+  #VAL=${VAL%?}
+  #echo "$VAL" >&2
 }
 
 ####################
@@ -706,7 +891,8 @@ MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
 tex_parser_opendetex "$SRC" "$PLAINTEX_FILE" "$MATCHER_FILE"
-spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
+cat -n "$PLAINTEX_FILE"
+spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
 cat "$ERRORED_FILE"
 
 #echo "${CONFIG[HOST]}"
