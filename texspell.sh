@@ -621,7 +621,7 @@ function rawurlencode {
 # R - The response of languagetool
 function request_languagetool
 {
-  curl -s --data "language=en-US&data=$(rawurlencode "$1")" http://${CONFIG[HOST]}:${CONFIG[PORT]}/v2/check
+  curl -s --data "language=en-US&data=$(rawurlencode "$1")" http://"${CONFIG[HOST]}":"${CONFIG[PORT]}"/v2/check
 }
 
 # Will compute the number of \n a input text with a limit of chars to check
