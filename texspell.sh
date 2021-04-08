@@ -54,8 +54,10 @@ PATH_CONFIG="$HOME/.config/texspell.cfg"
 # Config
 typeset -A CONFIG
 CONFIG=(
-  [HOST]="0.0.0.0"
+  [HOST]="127.0.0.1"
+  [PORT]="8081"
   [LANGUAGETOOLS]="TRUE"
+  [SPELLCHECK]="LANGUAGETOOLS"
 )
 
 
@@ -115,7 +117,7 @@ while test $# -gt 0; do
         MAKE_DICT=1
         LIST_DICT="$2"
       else
-        echo "\"$2\" is not a config file"
+        echo "Dictionary \"$2\" is not a file"
         exit 1
       fi
       shift
@@ -125,7 +127,7 @@ while test $# -gt 0; do
       if [ -f "$2" ]; then
         PATH_CONFIG="$2"
       else
-        echo "Dictonary \"$2\" is not a file"
+        echo "\"$2\" is not a config file"
         exit 1
       fi
       shift
@@ -578,13 +580,173 @@ function report_file {
 # R - Nothing
 function load_config {
   local CONF_FILE=$1
-  for KEY in "${!CONFIG[@]}"; do
-    # Only select last matching pattern in config file
-    VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" "$CONF_FILE" | tail -n -1)
-    if [ -n "$VALUE" ]; then
-      CONFIG[$KEY]="$VALUE"
-    fi
+  if [ -f "$1" ]; then
+    for KEY in "${!CONFIG[@]}"; do
+      # Only select last matching pattern in config file
+      VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" "$CONF_FILE" | tail -n -1)
+      if [ -n "$VALUE" ]; then
+        CONFIG[$KEY]="$VALUE"
+      fi
+    done
+  fi
+}
+
+
+# Function to raw urlencode
+# 1 - string to urlencode
+#
+# R - string urlencoded
+function rawurlencode {
+  # We need this function because curl --data-encoded not work on \n
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
   done
+  echo "${encoded}"    # You can either set a return variable (FASTER) 
+}
+
+
+# Simple function to make request to languageTool
+# 1 - The text to check with languageTool
+#
+# R - The response of languagetool
+function request_languagetool
+{
+  curl -s --data "language=en-US&data=$(rawurlencode "$1")" http://"${CONFIG[HOST]}":"${CONFIG[PORT]}"/v2/check
+}
+
+# Will compute the number of \n a input text with a limit of chars to check
+# 1 - The text to check
+# 2 - The limit of char
+# 
+# R - The number of \n
+function get_number_new_line {
+  echo "$1" | cut -c1-"$2" | grep -o '\n' | wc -l
+}
+
+# Will compute the chars on the $2 lines of $1. New lines are made with \n
+# 1 - SRC
+# 3 - C
+#
+# R - Number of char
+function get_nb_char_up_to_line {
+  local CUTTED
+  CUTTED=$(echo "$1" | grep -o '.*\n')
+  echo ${#CUTTED}
+}
+
+# A function to cut the differents errors and process them
+# 1 - The string representing a json (after matches from the response of languageTool
+# 2 - the Path to write the errors 
+# 3 - Offset of number of line
+# 4 - Path to true plaintext
+#
+# R - Nothing
+function split_and_process_languagetool {
+  local IN=$1
+  local OUT=$2
+  local OFFSET=$3
+  local SRC=$4
+
+  local ERRORS
+
+  # Cut the response of the servor the aves the errors
+  ERRORS=$(echo "$IN" | grep -o 'matches.*' | cut -f2- -d:)
+  ERRORS=${ERRORS%?}
+
+  # No errors
+  if [[ $ERRORS == "[]" ]]; then
+    return
+  fi 
+    
+  #Variable declaration
+  local LINENUMBER
+  local OLDLINENUMBER
+  local CUTTED_TEXT
+  local delimiter
+  local s
+  local ERROR
+  local ERR
+  local LEN_ERR
+  local POS_ERR
+  local SENTENCE
+  local REPLS
+  local NB_REPL
+  local REPL
+  local i 
+  OLDLINENUMBER=-1
+
+  # Split each correction 
+  delimiter="message"
+  s=$ERRORS$delimiter
+  while [[ $s ]]; do
+    ERR=( "${s%%"$delimiter"*}" );
+    ERROR=${ERR[0]} # To please linter
+
+    # Remove first elem from the array
+    if [[ $ERROR == "[{\"" ]]; then
+      s=${s#*"$delimiter"};
+      ERR=( "${s%%"$delimiter"*}" );
+      ERROR=${ERR[0]} # To please linter
+    fi
+
+    # Fetch position, length and sentence of the error
+    POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+    LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+    SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
+    
+    # Clean sentence and fetch line number
+    SENTENCE=${SENTENCE:11:-7}
+    LINENUMBER=$(first_match_lineno_file "$SENTENCE" "$SRC")
+    LINENUMBER=$((LINENUMBER - OFFSET))
+
+    # Get the number of char beffore
+    if [[ $LINENUMBER -ge 1 ]]; then
+        CUTTED_TEXT=$(head -$((LINENUMBER-1)) "$SRC" | sed -e "1,$OFFSET"d | wc -c)
+    fi
+
+    # Update the position to get position in the line
+    POS_ERR=$((POS_ERR - 4*(LINENUMBER -1) -CUTTED_TEXT ))
+
+    # If we have a new line 
+    if [ "$LINENUMBER" != "$OLDLINENUMBER" ]; then
+      echo "" >> "$OUT"
+      OLDLINENUMBER=$LINENUMBER
+      LINENUMBER=$((LINENUMBER + OFFSET))
+      echo "${LINENUMBER}" >> "$OUT"
+    fi
+    NB_REPL=0
+    REPL=""
+
+    # Fetch the number of propositions and each propositions
+    REPLS=$(echo "$ERROR" | grep -o 'replacements":.*' | cut -f2- -d '[' | cut -f1 -d ']')
+    NB_REPL=$(echo "$REPLS" | grep -o '{' | wc -l)
+    IFS='{'
+    read -ra REPL_TAB <<< "$REPLS"
+    for i in "${REPL_TAB[@]}"; do
+      REPL+=$(echo "$i" | sed 's/"//g' | cut -f2 -d':'| cut -f1 -d'}' | cut -f1 -d',')
+      REPL+="|"
+    done
+
+    # Fetch the message
+    local MSG
+    MSG=$(echo "$ERROR" | grep -o '.*","shortMessage' | sed 's/":"//' | sed 's/","shortMessage//')
+
+    # Output the message
+    echo "$POS_ERR|$LEN_ERR|$MSG|$NB_REPL$REPL" >> "$OUT"
+
+    # Go to the next error 
+    s=${s#*"$delimiter"};
+  done;
 }
 
 ##################
@@ -611,23 +773,25 @@ function tex_parser_opendetex {
 # 2 - Path to a tmp file with
 #   * Line of error
 #   * Offset and range of the error
-#   * type of error + proposition to correct
+#   * Message of error
+#   * Number of propositions
+#   * Each proposition
+# Each element is separated with | 
+
 function spell_checker_hunspell {
   local IN=$1
   local OUT=$2
   local FILE=$1
-  local FILENAME
-  FILENAME=$(basename "$FILE")
-
-
   local FILE_ERROR_AND_SUGG
-  FILE_ERROR_AND_SUGG=$(create_file "errors_and_suggestions")
   local FILE_LINES_ERROR
+  local N_LINES
+  
+  # Create files and get the errors
+  FILE_ERROR_AND_SUGG=$(create_file "errors_and_suggestions")
   FILE_LINES_ERROR=$(create_file "lines_with_errors")
   errors_and_suggestions "$IN" "$FILE_ERROR_AND_SUGG"
   lines_with_errors "$IN" "$FILE_LINES_ERROR" 
 
-  local N_LINES
   N_LINES=$(wc -l "$FILE_ERROR_AND_SUGG" | awk '{ print $1 }') 
   
   # If the file contain only an empty string -> no error
@@ -638,6 +802,11 @@ function spell_checker_hunspell {
     fi
   fi
 
+  local j
+  local k
+  local POS
+  local SUGGESTIONS
+
   # No errors
   if [ $N_LINES -eq 0 ]; then
     return  
@@ -647,7 +816,9 @@ function spell_checker_hunspell {
     POS=0
     for (( i=1; i < N_LINES ; i++ ))
     do
+      # Fetch the suggestions
       SUGGESTIONS=$(ith_line_file "$FILE_ERROR_AND_SUGG" "$i")
+
       # If suggestion is empty -> other line in the plaintex file
       if [ -z "${SUGGESTIONS}" ]; then
         j=$((j+1))
@@ -661,7 +832,10 @@ function spell_checker_hunspell {
           echo "${LINE_NO}" >> "$OUT"
           k=$j
         fi
+
+        #  V type of error
         if [[ ${SUGGESTIONS:0:1} == "V" ]]; then
+          # Split with regex
           MATCH="(V([0-9]+):\s)(\S+)(\s=>\s)(.+)"
           MATCH_N_PROP="(([0-9]+))"
           MATCH_PROPS="(,\s)"
@@ -673,15 +847,80 @@ function spell_checker_hunspell {
           ERRORNOUS=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "\5")
           NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o)
           PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" ":" | cut -f2- -d ' ')
-          echo "$V_POSITION:${#ERRORNOUS_WORD}:dict:$NUMBER_PROP:$PROPS" >> "$OUT"
+          echo "$V_POSITION|${#ERRORNOUS_WORD}|Word not in the dict|$NUMBER_PROP|$PROPS|" >> "$OUT"
+
+        # # type of error
         elif [[ ${SUGGESTIONS:0:1} == "#" ]]; then
+          # split with regex
+
           WORD=$(echo "$SUGGESTIONS" | cut -f2 -d ' ')
           V_POSITION=$(echo "$SUGGESTIONS" | cut -f3 -d ' ')
-          echo "$V_POSITION:${#WORD}:unknown" >> "$OUT"
+          echo "$V_POSITION|${#WORD}|No match for the word|0|" >> "$OUT"
         fi
       fi
     done
   fi
+
+  # Remove last line
+  sed -i '1,1d' "$OUT"
+}
+
+function spell_checker_languagetool {
+  local IN=$1
+  local OUT=$2
+  local N_LINES
+  local LINE
+  local CHARS_TO_CHECK
+  local SIZE_CHARS
+  local SIZE_CHARS_LINE
+  local OFFSET
+
+  # Init
+  N_LINES=$(wc -l "$IN" | awk '{ print $1 }') 
+  CHARS_TO_CHECK='{"annotation":['
+  SIZE_CHARS=0
+  SIZE_CHARS_LINE=0
+  OFFSET=0
+  
+  for (( i=1; i < N_LINES ; i++ ))
+  do
+    LINE=$(ith_line_file "$IN" "$i")
+    SIZE_CHARS_LINE=${#LINE}
+
+    # Limit by languageTool
+    if [[ $((SIZE_CHARS_LINE + SIZE_CHARS)) -le 9500 ]]; then
+
+      # Add it to tmp chars
+      SIZE_CHARS=$((SIZE_CHARS + SIZE_CHARS_LINE))
+      CHARS_TO_CHECK+='{"text":"'
+      CHARS_TO_CHECK+="$LINE"
+      CHARS_TO_CHECK+='"},{"markup": "<br/>", "interpretAs": "\n\n"},'
+    else
+      # Finish the json
+      CHARS_TO_CHECK=${CHARS_TO_CHECK::-1}
+      CHARS_TO_CHECK+="]}"
+      
+      # Do the correction
+      RES=$(request_languagetool "$CHARS_TO_CHECK")
+      split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
+      
+      # Start new correction
+      OFFSET=$i
+      CHARS_TO_CHECK='{"annotation":[ {"text": "'
+      CHARS_TO_CHECK+="$LINE"
+      CHARS_TO_CHECK+='"},'
+      SIZE_CHARS=${#CHARS_TO_CHECK}
+    fi
+  done
+
+  # last correction 
+  CHARS_TO_CHECK=${CHARS_TO_CHECK::-1}
+  CHARS_TO_CHECK+="]}"
+  RES="$(request_languagetool "$CHARS_TO_CHECK")"
+  split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
+
+  # Remove first line
+  sed -i -e 1,2d "$OUT"
 }
 
 ####################
@@ -706,10 +945,17 @@ MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
 tex_parser_opendetex "$SRC" "$PLAINTEX_FILE" "$MATCHER_FILE"
-spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
+
+if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
+  spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
+elif [ "${CONFIG[SPELLCHECK]}" == "HUNSPELL" ];then
+  spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
+else
+  echo "The spell checker \"${CONFIG[SPELLCHECK]}\" is unknown" 
+fi
+
 cat "$ERRORED_FILE"
 
-#echo "${CONFIG[HOST]}"
 
 
 exit 0
