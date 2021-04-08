@@ -979,9 +979,7 @@ function aggregator_sdtout {
   local FILENAME
   OLD_FILENAME=""
 
-  local OLD_LINENUMBER
   local LINENUMBER
-  OLD_LINENUMBER=""
   
   local PLAINTEXT_LINE
   local PLAINTEXT_NLINE
@@ -1004,7 +1002,7 @@ function aggregator_sdtout {
     FILENAME=$(echo "$LINE" | cut  -f1 -d "|" )
 
     # If we are on a new filename
-    if [[ $OLD_FILENAME != $FILENAME ]]; then
+    if [[ "$OLD_FILENAME" != "$FILENAME" ]]; then
       OLD_FILENAME="$FILENAME"
       echo "" >&2
       echo "$FILENAME" >&2
@@ -1020,7 +1018,7 @@ function aggregator_sdtout {
     echo "At line $SRCTEXT_NLINE :" >&2
     
     # Error coloring
-    for ((j=$ERRORTEXT_NLINE + $NB_ERRORS; j >= $ERRORTEXT_NLINE +1; j--))
+    for ((j="$ERRORTEXT_NLINE" + "$NB_ERRORS"; j >= "$ERRORTEXT_NLINE" +1; j--))
     do
       ERRORED_LINE=$(ith_line_file "$ERR_FILE" "$j")
       OFFSET=$(echo "$ERRORED_LINE" | cut  -f1 -d "|" )
@@ -1030,7 +1028,7 @@ function aggregator_sdtout {
     echo -e "$PLAINTEXT_LINE" >&2
     
     #Output of each errors
-    for ((j=$ERRORTEXT_NLINE +1; j <= $ERRORTEXT_NLINE + $NB_ERRORS; j++))
+    for ((j="$ERRORTEXT_NLINE" +1; j <= "$ERRORTEXT_NLINE" + "$NB_ERRORS"; j++))
     do
       ERRORED_LINE=$(ith_line_file "$ERR_FILE" "$j")
       OFFSET=$(echo "$ERRORED_LINE" | cut  -f1 -d "|" )
@@ -1038,9 +1036,9 @@ function aggregator_sdtout {
       MSG=$(echo "$ERRORED_LINE" | cut  -f3 -d "|" )
       NB_PROP=$(echo "$ERRORED_LINE" | cut  -f4 -d "|" )
       echo "+ O: $OFFSET L: $LENGTH  $MSG" >&2
-      for ((k = 5; k < 5 + $NB_PROP; k++))
+      for ((k = 5; k < 5 + "$NB_PROP"; k++))
       do
-        PROP=$(echo "$ERRORED_LINE" | cut  -f$k -d "|" )
+        PROP=$(echo "$ERRORED_LINE" | cut  -f"$k" -d "|" )
         echo "  + $PROP" >&2
       done
 
