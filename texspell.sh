@@ -715,7 +715,7 @@ function split_and_process_languagetool {
     fi
 
     # Update the position to get position in the line
-    POS_ERR=$((POS_ERR - 4*(LINENUMBER -1) -CUTTED_TEXT ))
+    POS_ERR=$((POS_ERR - 4*(LINENUMBER -1) -CUTTED_TEXT -1))
 
     # If we have a new line 
     if [ "$LINENUMBER" != "$OLDLINENUMBER" ]; then
@@ -846,7 +846,7 @@ function spell_checker_hunspell {
           ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
           ERRORNOUS=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "\5")
           NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o)
-          PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" ":" | cut -f2- -d ' ')
+          PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" "|" | cut -f2- -d ' ')
           echo "$V_POSITION|${#ERRORNOUS_WORD}|Word not in the dict|$NUMBER_PROP|$PROPS|" >> "$OUT"
 
         # # type of error
@@ -882,7 +882,7 @@ function spell_checker_languagetool {
   SIZE_CHARS_LINE=0
   OFFSET=0
   
-  for (( i=1; i < N_LINES ; i++ ))
+  for (( i=1; i <= N_LINES ; i++ ))
   do
     LINE=$(ith_line_file "$IN" "$i")
     SIZE_CHARS_LINE=${#LINE}
@@ -920,8 +920,136 @@ function spell_checker_languagetool {
   split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
 
   # Remove first line
-  sed -i -e 1,2d "$OUT"
+  sed -i -e 1,1d "$OUT"
+
 }
+
+##############
+# Aggregator #
+##############
+# The output of the function will be implementation dependant
+# 1 - Path to a file with the errors with the format of the spell checker
+# 2 - Path to a file to which make the correspondance between the tex project and the plaintext
+# 3 - Path to the plaintext file
+# 
+# R - 
+
+# Will output the sorted errors by files and line nubmer.
+# The output used is STDOUT and will use a colored output
+function aggregator_sdtout {
+  local ERR_FILE=$1
+  local MATCH_FILE=$2
+  local PLAINTEXT_FILE=$3
+  local SORTED_FILE
+  SORTED_FILE=$(create_file "sorted")
+
+  local NEW_ERROR
+  local N_LINES
+  local LINE_MATCHER
+  local TMP_LINE
+  local NB_ERROR
+  NEW_ERROR=1
+
+  # Make the match between the error file/input file
+  N_LINES=$(wc -l "$ERR_FILE" | awk '{ print $1 }') 
+  for (( i=1; i <= N_LINES ; i++ ))
+  do
+    LINE=$(ith_line_file "$ERR_FILE" "$i")
+    if [ $NEW_ERROR -eq 1 ]; then
+      NEW_ERROR=0
+      NB_ERROR=0
+      LINE_MATCHER=$(ith_line_file "$MATCH_FILE" "$LINE")
+      TMP_LINE="${LINE_MATCHER/:/|}|$i"
+      
+    elif [[ $LINE == "" ]]; then
+      TMP_LINE="$TMP_LINE|$NB_ERROR"
+      echo "$TMP_LINE" >> "$SORTED_FILE"
+      NEW_ERROR=1
+    else
+      NB_ERROR=$((NB_ERROR + 1))
+    fi
+  done
+
+  # Sort the error by file 
+  local SORTED_FILE_OUTPUT
+  SORTED_FILE_OUTPUT=$(create_file "sorted_output")
+  sort "$SORTED_FILE" > "$SORTED_FILE_OUTPUT"
+
+  local OLD_FILENAME
+  local FILENAME
+  OLD_FILENAME=""
+
+  local OLD_LINENUMBER
+  local LINENUMBER
+  OLD_LINENUMBER=""
+  
+  local PLAINTEXT_LINE
+  local PLAINTEXT_NLINE
+  local ERRORED_LINE
+  local ERRORTEXT_NLINE
+  local SRCTEXT_NLINE
+  local NB_ERRORS
+
+  local OFFSET
+  local LENGTH
+  local MSG
+  local NB_PROP
+  local PROP
+  
+  # For each errored line
+  N_LINES=$(wc -l "$SORTED_FILE_OUTPUT" | awk '{ print $1 }') 
+  for (( i=1; i <= N_LINES ; i++ ))
+  do
+    LINE=$(ith_line_file "$SORTED_FILE_OUTPUT" "$i")
+    FILENAME=$(echo "$LINE" | cut  -f1 -d "|" )
+
+    # If we are on a new filename
+    if [[ $OLD_FILENAME != $FILENAME ]]; then
+      OLD_FILENAME="$FILENAME"
+      echo "" >&2
+      echo "$FILENAME" >&2
+      echo "========" >&2
+    fi
+
+    # Fetch the different line
+    SRCTEXT_NLINE=$(echo "$LINE" | cut  -f2 -d "|" )
+    ERRORTEXT_NLINE=$(echo "$LINE" | cut  -f3 -d "|" )
+    NB_ERRORS=$(echo "$LINE" | cut  -f4 -d "|" )
+    PLAINTEXT_NLINE=$(ith_line_file "$ERR_FILE" "$ERRORTEXT_NLINE")
+    PLAINTEXT_LINE=$(ith_line_file "$PLAINTEXT_FILE" "$PLAINTEXT_NLINE")
+    echo "At line $SRCTEXT_NLINE :" >&2
+    
+    # Error coloring
+    for ((j=$ERRORTEXT_NLINE + $NB_ERRORS; j >= $ERRORTEXT_NLINE +1; j--))
+    do
+      ERRORED_LINE=$(ith_line_file "$ERR_FILE" "$j")
+      OFFSET=$(echo "$ERRORED_LINE" | cut  -f1 -d "|" )
+      LENGTH=$(echo "$ERRORED_LINE" | cut  -f2 -d "|" )
+      PLAINTEXT_LINE="${PLAINTEXT_LINE:0:OFFSET}$RED${PLAINTEXT_LINE:$OFFSET:$LENGTH}$NC${PLAINTEXT_LINE:$OFFSET+$LENGTH}"
+    done
+    echo -e "$PLAINTEXT_LINE" >&2
+    
+    #Output of each errors
+    for ((j=$ERRORTEXT_NLINE +1; j <= $ERRORTEXT_NLINE + $NB_ERRORS; j++))
+    do
+      ERRORED_LINE=$(ith_line_file "$ERR_FILE" "$j")
+      OFFSET=$(echo "$ERRORED_LINE" | cut  -f1 -d "|" )
+      LENGTH=$(echo "$ERRORED_LINE" | cut  -f2 -d "|" )
+      MSG=$(echo "$ERRORED_LINE" | cut  -f3 -d "|" )
+      NB_PROP=$(echo "$ERRORED_LINE" | cut  -f4 -d "|" )
+      echo "+ O: $OFFSET L: $LENGTH  $MSG" >&2
+      for ((k = 5; k < 5 + $NB_PROP; k++))
+      do
+        PROP=$(echo "$ERRORED_LINE" | cut  -f$k -d "|" )
+        echo "  + $PROP" >&2
+      done
+
+    done
+
+    echo "" >&2
+  done
+}
+
 
 ####################
 # Script execution #
@@ -954,8 +1082,7 @@ else
   echo "The spell checker \"${CONFIG[SPELLCHECK]}\" is unknown" 
 fi
 
-cat "$ERRORED_FILE"
-
+aggregator_sdtout "$ERRORED_FILE" "$MATCHER_FILE" "$PLAINTEX_FILE"
 
 
 exit 0
