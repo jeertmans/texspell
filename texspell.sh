@@ -1070,9 +1070,9 @@ PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
-cd "$(dirname "$SRC")"
+cd "$(dirname "$SRC")" || exit 1
 tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
-cd ~-
+cd ~- || return
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
   spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
