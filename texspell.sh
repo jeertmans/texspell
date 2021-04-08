@@ -1059,7 +1059,7 @@ if [ -d "$SRC" ]; then
   exit 1
 fi
 
-if [ ".${SRC#*.}" != $TEX_EXT ]; then
+if [ ".${SRC##*.}" != $TEX_EXT ]; then
   >&2 echo "The file is not a texfile"
   exit 1
 fi
@@ -1070,7 +1070,9 @@ PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
-tex_parser_opendetex "$SRC" "$PLAINTEX_FILE" "$MATCHER_FILE"
+cd "$(dirname "$SRC")"
+tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
+cd ~-
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
   spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
