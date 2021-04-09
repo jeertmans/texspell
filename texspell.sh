@@ -1075,7 +1075,32 @@ tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
 cd ~- || return
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
-  spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
+  if [ "$VERBOSITY" -eq 2 ]; then
+    echo "Try pinging LangugateTool servers... it may takes times"
+  fi
+
+  if $(ping -c1 "${CONFIG[HOST]}" > /dev/null); then
+    if [ "$VERBOSITY" -eq 2 ]; then
+      echo "Server is there !"
+      echo "Try test request on the LangugateTool servers..."
+    fi
+    RESPONSE=$(curl -s http://"${CONFIG[HOST]}":"${CONFIG[PORT]}")
+    GOOD_RESPONSE="Error: Missing arguments for LanguageTool API. Please see https://languagetool.org/http-api/swagger-ui/#/default"
+   
+    if [ "$RESPONSE" != "$GOOD_RESPONSE" ];then
+      >&2 echo "Error: LanguageTool server did not response to test request"
+      exit 1
+    else
+      if [ "$VERBOSITY" -eq 2 ]; then
+        echo "Languagetool server is up and running"
+      fi
+       spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
+    fi
+    
+  else
+    >&2 echo "Error: Could not ping the LanguageTool servers at ${CONFIG[HOST]}"
+    exit 1
+  fi
 elif [ "${CONFIG[SPELLCHECK]}" == "HUNSPELL" ];then
   spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
 else
