@@ -1079,7 +1079,7 @@ if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
     echo "Try pinging LangugateTool servers... it may takes times"
   fi
 
-  if $(ping -c1 "${CONFIG[HOST]}" > /dev/null); then
+  if ping -c1 "${CONFIG[HOST]}" > /dev/null; then
     if [ "$VERBOSITY" -eq 2 ]; then
       echo "Server is there !"
       echo "Try test request on the LangugateTool servers..."
