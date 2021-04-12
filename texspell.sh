@@ -20,7 +20,7 @@ DOC="
 \n
 Options:\n
 -h, --help: get this help\n
--a, --all: Clean/Check also hidden files and hidden directories\n
+-s, --single-file: Check only the file and not the project
 -c, --clean: Remove all .diff in the . directiory and sub-directories\n
     --config [FILE]: select a config file to use
 -d, --dict [FILE]: Create a dict from FILE
@@ -48,8 +48,10 @@ MAKE_DICT=0
 LIST_DICT=""
 DICT="dict_texspell"
 N_WORD_KEPT=3
+
 REPORT_FILE="report_texspell"
 PATH_CONFIG="$HOME/.config/texspell.cfg"
+CHECK_PROJECT=1
 
 # Config
 typeset -A CONFIG
@@ -83,7 +85,11 @@ while test $# -gt 0; do
       exit 0
       ;;
     -v|--version)
-      echo "Version: 0.1"
+      echo "Version: 2"
+      shift
+      ;;
+    -s|--single_file)
+      CHECK_PROJECT=0
       shift
       ;;
     -c|--clean)
@@ -759,10 +765,13 @@ function tex_parser_opendetex {
   local SRC=$1
   local PLAINTEX=$2
   local MATCHER=$3
-
-  detex "$SRC" > "$PLAINTEX"
-  detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
-
+  if [ "$CHECK_PROJECT" == 0 ]; then
+    detex -n "$SRC" > "$PLAINTEX"
+    detex -n -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
+  else
+    detex "$SRC" > "$PLAINTEX"
+    detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
+  fi
 }
 
 ##################
