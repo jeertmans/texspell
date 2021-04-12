@@ -14,6 +14,8 @@ _texspell()
 --dict 
 --help
 --modified
+--max-suggestions
+--no-max-suggestions
 --single-file
 --verbosity
 --version"
