@@ -921,7 +921,7 @@ function spell_checker_languagetool {
   split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
 
   # Remove first line
-  sed -i -e 1,1d "$OUT"
+  sed -i -e "1,1d" "$OUT"
 
 }
 
