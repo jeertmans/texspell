@@ -762,6 +762,7 @@ function tex_parser_opendetex {
 
   detex "$SRC" > "$PLAINTEX"
   detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
+  sed -i 's/\t/\\t/' "$PLAINTEX"
 
 }
 
@@ -1073,6 +1074,7 @@ ERRORED_FILE=$(create_file "errored_input")
 cd "$(dirname "$SRC")" || exit 1
 tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
 cd ~- || return
+
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
   spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
