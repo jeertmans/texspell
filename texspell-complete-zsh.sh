@@ -12,6 +12,7 @@ args+=(
   '(-h --help)*'{-h,--help}'[Get some help]'
   '(-m --modified)*'{-m,--modified}'[Work only on modified files]'
   '--no-report[Do not print a report]'
+  '(-s --single-file)*'{-s,--single-file}'[To check only the selected file]'
   '--verbosity[Level of verbosity]:int:(( 0 1 2 ))'
   '(-v --version)*'{-v,--verbose}'[Version of texpsell]'
 )

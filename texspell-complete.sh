@@ -13,9 +13,10 @@ _texspell()
 --config
 --dict 
 --help
---version
 --modified
---verbosity"
+--single-file
+--verbosity
+--version"
 
   local IFS=$'\n'
 
