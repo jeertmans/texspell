@@ -20,7 +20,7 @@ DOC="
 \n
 Options:\n
 -h, --help: get this help\n
--a, --all: Clean/Check also hidden files and hidden directories\n
+-s, --single-file: Check only the file and not the project
 -c, --clean: Remove all .diff in the . directiory and sub-directories\n
     --config [FILE]: select a config file to use
 -d, --dict [FILE]: Create a dict from FILE
@@ -48,8 +48,10 @@ MAKE_DICT=0
 LIST_DICT=""
 DICT="dict_texspell"
 N_WORD_KEPT=3
+
 REPORT_FILE="report_texspell"
 PATH_CONFIG="$HOME/.config/texspell.cfg"
+CHECK_PROJECT=1
 
 # Config
 typeset -A CONFIG
@@ -83,7 +85,11 @@ while test $# -gt 0; do
       exit 0
       ;;
     -v|--version)
-      echo "Version: 0.1"
+      echo "Version: 2"
+      shift
+      ;;
+    -s|--single_file)
+      CHECK_PROJECT=0
       shift
       ;;
     -c|--clean)
@@ -759,11 +765,14 @@ function tex_parser_opendetex {
   local SRC=$1
   local PLAINTEX=$2
   local MATCHER=$3
-
-  detex "$SRC" > "$PLAINTEX"
-  detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
+  if [ "$CHECK_PROJECT" == 0 ]; then
+    detex -n "$SRC" > "$PLAINTEX"
+    detex -n -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
+  else
+    detex "$SRC" > "$PLAINTEX"
+    detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
+  fi
   sed -i 's/\t/\\t/' "$PLAINTEX"
-
 }
 
 ##################
@@ -1077,7 +1086,32 @@ cd ~- || return
 
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
-  spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
+  if [ "$VERBOSITY" -eq 2 ]; then
+    echo "Try pinging LangugateTool servers... it may takes times"
+  fi
+
+  if ping -c1 "${CONFIG[HOST]}" > /dev/null; then
+    if [ "$VERBOSITY" -eq 2 ]; then
+      echo "Server is there !"
+      echo "Try test request on the LangugateTool servers..."
+    fi
+    RESPONSE=$(curl -s http://"${CONFIG[HOST]}":"${CONFIG[PORT]}")
+    GOOD_RESPONSE="Error: Missing arguments for LanguageTool API. Please see https://languagetool.org/http-api/swagger-ui/#/default"
+   
+    if [ "$RESPONSE" != "$GOOD_RESPONSE" ];then
+      >&2 echo "Error: LanguageTool server did not response to test request"
+      exit 1
+    else
+      if [ "$VERBOSITY" -eq 2 ]; then
+        echo "Languagetool server is up and running"
+      fi
+       spell_checker_languagetool "$PLAINTEX_FILE" "$ERRORED_FILE"
+    fi
+    
+  else
+    >&2 echo "Error: Could not ping the LanguageTool servers at ${CONFIG[HOST]}"
+    exit 1
+  fi
 elif [ "${CONFIG[SPELLCHECK]}" == "HUNSPELL" ];then
   spell_checker_hunspell "$PLAINTEX_FILE" "$ERRORED_FILE"
 else
