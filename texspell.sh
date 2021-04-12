@@ -686,18 +686,19 @@ function split_and_process_languagetool {
   OLDLINENUMBER=-1
 
   # Split each correction 
-  delimiter="message"
+  delimiter='{"message'
   s=$ERRORS$delimiter
   while [[ $s ]]; do
     ERR=( "${s%%"$delimiter"*}" );
     ERROR=${ERR[0]} # To please linter
 
     # Remove first elem from the array
-    if [[ $ERROR == "[{\"" ]]; then
+    if [[ $ERROR == "[" ]]; then
       s=${s#*"$delimiter"};
       ERR=( "${s%%"$delimiter"*}" );
       ERROR=${ERR[0]} # To please linter
     fi
+
 
     # Fetch position, length and sentence of the error
     POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
@@ -711,9 +712,12 @@ function split_and_process_languagetool {
 
     # Get the number of char beffore
     if [[ $LINENUMBER -ge 1 ]]; then
-        CUTTED_TEXT=$(head -$((LINENUMBER-1)) "$SRC" | sed -e "1,$OFFSET"d | wc -c)
+      CUTTED_TEXT=$(head -$((LINENUMBER-1)) "$SRC")
+     if [ "$OFFSET" -ne 0 ]; then
+        CUTTED_TEXT=$(echo "$CUTTED_TEXT" | sed -e "1,$OFFSET"d)
+     fi
+     CUTTED_TEXT=${#CUTTED_TEXT}
     fi
-
     # Update the position to get position in the line
     POS_ERR=$((POS_ERR - 4*(LINENUMBER -1) -CUTTED_TEXT -1))
 
@@ -762,7 +766,7 @@ function tex_parser_opendetex {
 
   detex "$SRC" > "$PLAINTEX"
   detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
-  sed -i 's/\t/\\t/' "$PLAINTEX"
+  sed -i 's/\t/ /g' "$PLAINTEX"
 
 }
 
@@ -918,6 +922,8 @@ function spell_checker_languagetool {
   CHARS_TO_CHECK=${CHARS_TO_CHECK::-1}
   CHARS_TO_CHECK+="]}"
   RES="$(request_languagetool "$CHARS_TO_CHECK")"
+  echo "$CHARS_TO_CHECK" >> TPM2
+  echo "$RES" >> TMP
   split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
 
   # Remove first line
@@ -971,6 +977,11 @@ function aggregator_sdtout {
     fi
   done
 
+  if [ $NEW_ERROR -eq 0 ]; then
+    TMP_LINE="$TMP_LINE|$NB_ERROR"
+    echo "$TMP_LINE" >> "$SORTED_FILE"
+  fi
+
   # Sort the error by file 
   local SORTED_FILE_OUTPUT
   SORTED_FILE_OUTPUT=$(create_file "sorted_output")
@@ -1017,7 +1028,7 @@ function aggregator_sdtout {
     PLAINTEXT_NLINE=$(ith_line_file "$ERR_FILE" "$ERRORTEXT_NLINE")
     PLAINTEXT_LINE=$(ith_line_file "$PLAINTEXT_FILE" "$PLAINTEXT_NLINE")
     echo "At line $SRCTEXT_NLINE :" >&2
-    
+
     # Error coloring
     for ((j="$ERRORTEXT_NLINE" + "$NB_ERRORS"; j >= "$ERRORTEXT_NLINE" +1; j--))
     do
@@ -1045,7 +1056,6 @@ function aggregator_sdtout {
 
     done
 
-    echo "" >&2
   done
 }
 
