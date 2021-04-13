@@ -26,6 +26,8 @@ Options:\n
 -d, --dict [FILE]: Create a dict from FILE
 -o, --clean-only: Do not generate the ${DIFF_EXT}\n
 -m, --modified: Will report only the modified .diff (cannot the .diff)\n
+--max-suggestions: Sets the maximum number of suggestions, a negative number means no limit\n
+--no-max-suggestions: Shortcut for --max-suggestions -1
 --no-report: Do not produce a report\n
 -v, --version: get version number\n
 \n"
@@ -52,6 +54,7 @@ N_WORD_KEPT=3
 REPORT_FILE="report_texspell"
 PATH_CONFIG="$HOME/.config/texspell.cfg"
 CHECK_PROJECT=1
+MAX_SUGGS=5 # Maximum number of suggestions, -1 to take all suggestions
 
 # Config
 typeset -A CONFIG
@@ -116,6 +119,20 @@ while test $# -gt 0; do
       ;;
     -m|--modified)
       ONLY_MODIFIED=1
+      shift
+      ;;
+    --max-suggestions)
+      if [[ "$2" =~ ^[+-]?[0-9]+$ ]]; then
+        MAX_SUGGS="$2"
+      else
+        echo "Max. suggestions \"$2\" should be an integer"
+        exit 1
+      fi
+      shift
+      shift
+      ;;
+    --no-max-suggestions)
+      MAX_SUGGS=-1
       shift
       ;;
     -d|--dict)
@@ -742,6 +759,12 @@ function split_and_process_languagetool {
     NB_REPL=$(echo "$REPLS" | grep -o '{' | wc -l)
     IFS='{'
     read -ra REPL_TAB <<< "$REPLS"
+    if [ "$MAX_SUGGS" -ge 0 ] && [ "$NB_REPL" -gt "$MAX_SUGGS" ]; then
+      NB_REPL=$((MAX_SUGGS + 1))
+      REPL_TAB=("${REPL_TAB[@]:0:$NB_REPL}")
+      REPL_TAB[$NB_REPL]='"value":"[...]"'
+    fi
+
     for i in "${REPL_TAB[@]}"; do
       REPL+=$(echo "$i" | sed 's/"//g' | cut -f2 -d':'| cut -f1 -d'}' | cut -f1 -d',')
       REPL+="|"
