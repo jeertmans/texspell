@@ -679,6 +679,7 @@ function split_and_process_languagetool {
   local OUT=$2
   local OFFSET=$3
   local SRC=$4
+  local CHARS_TO_CHECK=$5
 
   local ERRORS
 
@@ -701,7 +702,7 @@ function split_and_process_languagetool {
   local ERR
   local LEN_ERR
   local POS_ERR
-  local SENTENCE
+  #local SENTENCE
   local REPLS
   local NB_REPL
   local REPL
@@ -726,23 +727,20 @@ function split_and_process_languagetool {
     # Fetch position, length and sentence of the error
     POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
     LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
-    SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
+    #SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
     
     # Clean sentence and fetch line number
-    SENTENCE=${SENTENCE:11:-7}
-    LINENUMBER=$(first_match_lineno_file "$SENTENCE" "$SRC")
-    LINENUMBER=$((LINENUMBER - OFFSET))
+    LINENUMBER=$(echo "${CHARS_TO_CHECK:0:$POS_ERR}" | grep -o '<br/>' | wc -l ) 
 
-    # Get the number of char beffore
-    if [[ $LINENUMBER -ge 1 ]]; then
-      CUTTED_TEXT=$(head -$((LINENUMBER-1)) "$SRC")
-     if [ "$OFFSET" -ne 0 ]; then
-        CUTTED_TEXT=$(echo "$CUTTED_TEXT" | sed -e "1,$OFFSET"d)
-     fi
-     CUTTED_TEXT=${#CUTTED_TEXT}
-    fi
+    CUTTED_TEXT=${CHARS_TO_CHECK:0:$POS_ERR}
+    CUTTED_TEXT=$( echo "${CUTTED_TEXT//<br\/>/\|}" | rev | cut -d '|' -f 1)
+    # fix regex to exculde br
+    LINENUMBER=$((LINENUMBER+1))
+    
+    
     # Update the position to get position in the line
-    POS_ERR=$((POS_ERR - 4*(LINENUMBER -1) -CUTTED_TEXT -1))
+
+    POS_ERR=${#CUTTED_TEXT}
 
     # If we have a new line 
     if [ "$LINENUMBER" != "$OLDLINENUMBER" ]; then
@@ -909,6 +907,7 @@ function spell_checker_languagetool {
   local N_LINES
   local LINE
   local CHARS_TO_CHECK
+  local CHARS_TO_CHECK2
   local SIZE_CHARS
   local SIZE_CHARS_LINE
   local OFFSET
@@ -933,6 +932,7 @@ function spell_checker_languagetool {
       CHARS_TO_CHECK+='{"text":"'
       CHARS_TO_CHECK+="$LINE"
       CHARS_TO_CHECK+='"},{"markup": "<br/>", "interpretAs": "\n\n"},'
+      CHARS_TO_CHECK2+="$LINE<br/>"
     else
       # Finish the json
       CHARS_TO_CHECK=${CHARS_TO_CHECK::-1}
@@ -940,13 +940,14 @@ function spell_checker_languagetool {
       
       # Do the correction
       RES=$(request_languagetool "$CHARS_TO_CHECK")
-      split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
+      split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN" "$CHARS_TO_CHECK2"
       
       # Start new correction
       OFFSET=$i
       CHARS_TO_CHECK='{"annotation":[ {"text": "'
       CHARS_TO_CHECK+="$LINE"
-      CHARS_TO_CHECK+='"},'
+      CHARS_TO_CHECK+='"},{"markup": "<br/>", "interpretAs": "\n\n"},'
+      CHARS_TO_CHECK2="$LINE<br/>"
       SIZE_CHARS=${#CHARS_TO_CHECK}
     fi
   done
@@ -955,9 +956,9 @@ function spell_checker_languagetool {
   CHARS_TO_CHECK=${CHARS_TO_CHECK::-1}
   CHARS_TO_CHECK+="]}"
   RES="$(request_languagetool "$CHARS_TO_CHECK")"
-  echo "$CHARS_TO_CHECK" >> TPM2
-  echo "$RES" >> TMP
-  split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN"
+  echo "$CHARS_TO_CHECK" > TPM2
+  echo "$RES" > TMP
+  split_and_process_languagetool "$RES" "$OUT" "$OFFSET" "$IN" "$CHARS_TO_CHECK2"
 
   # Remove first line
   sed -i -e "1,1d" "$OUT"
@@ -1117,7 +1118,6 @@ ERRORED_FILE=$(create_file "errored_input")
 cd "$(dirname "$SRC")" || exit 1
 tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
 cd ~- || return
-
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
   if [ "$VERBOSITY" -eq 2 ]; then
