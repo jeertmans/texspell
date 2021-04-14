@@ -702,7 +702,7 @@ function split_and_process_languagetool {
   local ERR
   local LEN_ERR
   local POS_ERR
-  local SENTENCE
+  #local SENTENCE
   local REPLS
   local NB_REPL
   local REPL
@@ -727,7 +727,7 @@ function split_and_process_languagetool {
     # Fetch position, length and sentence of the error
     POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
     LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
-    SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
+    #SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
     
     # Clean sentence and fetch line number
     LINENUMBER=$(echo "${CHARS_TO_CHECK:0:$POS_ERR}" | grep -o '<br/>' | wc -l ) 
@@ -735,7 +735,7 @@ function split_and_process_languagetool {
     CUTTED_TEXT=${CHARS_TO_CHECK:0:$POS_ERR}
     CUTTED_TEXT=$( echo "${CUTTED_TEXT//<br\/>/\|}" | rev | cut -d '|' -f 1)
     # fix regex to exculde br
-    LINENUMBER=$(($LINENUMBER+1))
+    LINENUMBER=$((LINENUMBER+1))
     
     
     # Update the position to get position in the line
