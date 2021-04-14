@@ -1119,11 +1119,6 @@ cd "$(dirname "$SRC")" || exit 1
 tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
 cd ~- || return
 
-echo "$PLAINTEX_FILE"
-echo "$MATCHER_FILE"
-echo "$ERRORED_FILE"
-
-
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
   if [ "$VERBOSITY" -eq 2 ]; then
     echo "Try pinging LangugateTool servers... it may takes times"
