@@ -1130,9 +1130,6 @@ PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
-echo "$ERRORED_FILE"
-echo "$MATCHER_FILE" >&2
-
 cd "$(dirname "$SRC")" || exit 1
 tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
 cd ~- || return
