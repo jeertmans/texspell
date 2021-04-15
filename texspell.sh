@@ -82,95 +82,95 @@ CONFIG=(
 # Flags handler #
 #################
 while test $# -gt 0; do
-  case "$1" in
-    -h|--help)
-      echo -e "$DOC"
-      exit 0
-      ;;
-    -v|--version)
-      echo "Version: 2"
-      shift
-      ;;
-    -s|--single_file)
-      CHECK_PROJECT=0
-      shift
-      ;;
-    -c|--clean)
-      CLEAN=1
-      shift
-      ;;
-    -o|--clean-only)
-      CLEAN=1
-      SPELL=0
-      shift
-      ;;
-    --no-report)
-      REPORT=0
-      shift
-      ;;
-    --verbosity)
-      VERBOSITY=$2
-      shift
-      shift
-      ;;
-    -a|--all)
-      CHECK_HIDDEN=1 
-      shift
-      ;;
-    -m|--modified)
-      ONLY_MODIFIED=1
-      shift
-      ;;
-    --max-suggestions)
-      if [[ "$2" =~ ^[+-]?[0-9]+$ ]]; then
-        MAX_SUGGS="$2"
-      else
-        echo "Max. suggestions \"$2\" should be an integer"
-        exit 1
-      fi
-      shift
-      shift
-      ;;
-    --no-max-suggestions)
-      MAX_SUGGS=-1
-      shift
-      ;;
-    -d|--dict)
-      if [ -f "$2" ]; then
-        MAKE_DICT=1
-        LIST_DICT="$2"
-      else
-        echo "Dictionary \"$2\" is not a file"
-        exit 1
-      fi
-      shift
-      shift
-      ;;
-    --config)
-      if [ -f "$2" ]; then
-        PATH_CONFIG="$2"
-      else
-        echo "\"$2\" is not a config file"
-        exit 1
-      fi
-      shift
-      shift
-      ;;
-    *)
-      if [ -f "$1" ]; then
-        SRCISFILE=1
-        SRC=$1
-        shift
-      elif [ -d "$1" ]; then
-        SRCISFILE=0
-        SRC=$1
-        shift
-      else
-      echo "Last argument should be either a file or a directoy: ""${1}"
+case "$1" in
+  -h|--help)
+    echo -e "$DOC"
+    exit 0
+    ;;
+  -v|--version)
+    echo "Version: 2"
+    shift
+    ;;
+  -s|--single_file)
+    CHECK_PROJECT=0
+    shift
+    ;;
+  -c|--clean)
+    CLEAN=1
+    shift
+    ;;
+  -o|--clean-only)
+    CLEAN=1
+    SPELL=0
+    shift
+    ;;
+  --no-report)
+    REPORT=0
+    shift
+    ;;
+  --verbosity)
+    VERBOSITY=$2
+    shift
+    shift
+    ;;
+  -a|--all)
+    CHECK_HIDDEN=1 
+    shift
+    ;;
+  -m|--modified)
+    ONLY_MODIFIED=1
+    shift
+    ;;
+  --max-suggestions)
+    if [[ "$2" =~ ^[+-]?[0-9]+$ ]]; then
+      MAX_SUGGS="$2"
+    else
+      echo "Max. suggestions \"$2\" should be an integer"
       exit 1
-      fi
-      ;;
-  esac
+    fi
+    shift
+    shift
+    ;;
+  --no-max-suggestions)
+    MAX_SUGGS=-1
+    shift
+    ;;
+  -d|--dict)
+    if [ -f "$2" ]; then
+      MAKE_DICT=1
+      LIST_DICT="$2"
+    else
+      echo "Dictionary \"$2\" is not a file"
+      exit 1
+    fi
+    shift
+    shift
+    ;;
+  --config)
+    if [ -f "$2" ]; then
+      PATH_CONFIG="$2"
+    else
+      echo "\"$2\" is not a config file"
+      exit 1
+    fi
+    shift
+    shift
+    ;;
+  *)
+    if [ -f "$1" ]; then
+      SRCISFILE=1
+      SRC=$1
+      shift
+    elif [ -d "$1" ]; then
+      SRCISFILE=0
+      SRC=$1
+      shift
+    else
+    echo "Last argument should be either a file or a directoy: ""${1}"
+    exit 1
+    fi
+    ;;
+esac
 done
 
 #########################
@@ -185,19 +185,19 @@ done
 #
 # R - All the files matching conditons
 function find_files {
-  local SRC=$1
-  local EXT=$2
-  local HID=$3
-  local IGN=""
-  while test $# -gt 3; do
-    IGN="${IGN} ! -iname $4"
-    shift
-  done
-  if [ "$HID" -eq 1 ]; then
-    find "$SRC" -type f -iname "*${EXT}" "$IGN"
-  else
-    find "$SRC" -type f -iname "*${EXT}" "$IGN" -not -path "*/\.*"
-  fi
+local SRC=$1
+local EXT=$2
+local HID=$3
+local IGN=""
+while test $# -gt 3; do
+  IGN="${IGN} ! -iname $4"
+  shift
+done
+if [ "$HID" -eq 1 ]; then
+  find "$SRC" -type f -iname "*${EXT}" "$IGN"
+else
+  find "$SRC" -type f -iname "*${EXT}" "$IGN" -not -path "*/\.*"
+fi
 }
 
 # Remove files
@@ -205,8 +205,8 @@ function find_files {
 #
 # R - Nothing
 function remove_files {
-  local FILES=$1
-  xargs -n 1 -r rm "$FILES"
+local FILES=$1
+xargs -n 1 -r rm "$FILES"
 }
 
 # Remove colors from input
@@ -215,8 +215,8 @@ function remove_files {
 #
 # R - The input with colors removed
 function remove_colors {
-  local IN=$1
-  sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" "$IN"
+local IN=$1
+sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" "$IN"
 }
 
 # Substitute regex pattern
@@ -226,10 +226,10 @@ function remove_colors {
 #
 # R - The input with substituted patterns
 function regex_sub {
-  local STR=$1
-  local PAT=$2
-  local SUB=$3
-  echo "${STR}" | sed -E "s/${PAT}/${SUB}/g"
+local STR=$1
+local PAT=$2
+local SUB=$3
+echo "${STR}" | sed -E "s/${PAT}/${SUB}/g"
 }
 
 # Substitute regex pattern in file (in-place)
@@ -239,10 +239,10 @@ function regex_sub {
 #
 # R - Nothing
 function regex_sub_file {
-  local FILE=$1
-  local PAT=$2
-  local SUB=$3
-  sed -i -E "s/${PAT}/${SUB}/g" "$FILE"
+local FILE=$1
+local PAT=$2
+local SUB=$3
+sed -i -E "s/${PAT}/${SUB}/g" "$FILE"
 }
 
 # Write into a file the errors, their line number and the correction suggestions
@@ -251,20 +251,20 @@ function regex_sub_file {
 #
 # R - Nothing
 function errors_and_suggestions {
-  local IN=$1
-  local OUT=$2
+local IN=$1
+local OUT=$2
 
-  # Run hunspell, discarding lines with no error (*)
-  hunspell -a -t -i utf-8 -d en_US,$DICT <"$IN" | grep -v '[\*]' > "$OUT"
-  # Clean the first line of the file containing a header from Ispell
-  sed -i '1d' "$OUT"
-  # Remove extra linebreaks
-  sed -i '/^$/N;/^\n$/D' "$OUT"
-  
-  MATCH="&\s(\S+)\s([0-9]+)\s([0-9]+):\s(.+)"
-  SUBS="V\3: \1 => (\2) \4"
+# Run hunspell, discarding lines with no error (*)
+hunspell -a -t -i utf-8 -d en_US,$DICT <"$IN" | grep -v '[\*]' > "$OUT"
+# Clean the first line of the file containing a header from Ispell
+sed -i '1d' "$OUT"
+# Remove extra linebreaks
+sed -i '/^$/N;/^\n$/D' "$OUT"
 
-  regex_sub_file "$OUT" "${MATCH}" "${SUBS}" 
+MATCH="&\s(\S+)\s([0-9]+)\s([0-9]+):\s(.+)"
+SUBS="V\3: \1 => (\2) \4"
+
+regex_sub_file "$OUT" "${MATCH}" "${SUBS}" 
 }
 
 # Write into a file the lines where errors occur
@@ -273,9 +273,9 @@ function errors_and_suggestions {
 #
 # R - Nothing
 function lines_with_errors {
-  local IN=$1
-  local OUT=$2
-  hunspell -L -t -i utf-8 -d en_US,$DICT <"$IN" > "$OUT"
+local IN=$1
+local OUT=$2
+hunspell -L -t -i utf-8 -d en_US,$DICT <"$IN" > "$OUT"
 }
 
 # Returns a given line from a file
@@ -284,9 +284,9 @@ function lines_with_errors {
 #
 # R - The Ith line
 function ith_line_file {
-  local FILE=$1
-  local I=$2
-  sed "${I}q;d" "$FILE"
+local FILE=$1
+local I=$2
+sed "${I}q;d" "$FILE"
 }
 
 # Return the line number of the first line matching a given string
@@ -295,10 +295,10 @@ function ith_line_file {
 #
 # R - The line number
 function first_match_lineno_file {
-  local MATCH=$1
-  local FILE=$2
-  #echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
-  grep -F -o -m 1 -h -n -e "$(strip_leading_spaces "${MATCH}")" "$FILE" | cut -f1 -d:
+local MATCH=$1
+local FILE=$2
+#echo $(echo $MATCH | grep -Fx -n -f - $FILE | cut -f1 -d:)
+grep -F -o -m 1 -h -n -e "$(strip_leading_spaces "${MATCH}")" "$FILE" | cut -f1 -d:
 }
 
 # Will update $DICT with respect to $1
@@ -306,10 +306,10 @@ function first_match_lineno_file {
 #
 # R - Nothing
 function create_dict {
-  SORTED=$(< "$1" sort | uniq) 
-  echo "$SORTED" >&2
-  echo "$SORTED" | wc -l > $DICT$DIC_EXT
-  echo "$SORTED" >> $DICT$DIC_EXT
+SORTED=$(< "$1" sort | uniq) 
+echo "$SORTED" >&2
+echo "$SORTED" | wc -l > $DICT$DIC_EXT
+echo "$SORTED" >> $DICT$DIC_EXT
 }
 
 # Remove all the space from the first argument and output it
@@ -317,7 +317,7 @@ function create_dict {
 #
 # R - String cleaned
 function strip_leading_spaces {
-  echo "$1" | sed "s/ *$//g"
+echo "$1" | sed "s/ *$//g"
 }
 
 # Replace all \ by \\
@@ -325,8 +325,8 @@ function strip_leading_spaces {
 #
 # R - Replaced string
 function replace_backslash_by_double {
-  echo "${1//\\/\\\\\\}"
-  #echo "$1" | sed "s/\\/\\\\/g'
+echo "${1//\\/\\\\\\}"
+#echo "$1" | sed "s/\\/\\\\/g'
 }
 
 # Clean string for echo -e
@@ -334,7 +334,7 @@ function replace_backslash_by_double {
 #
 # R - String cleaned
 function clean_for_echo {
-  replace_backslash_by_double "$(strip_leading_spaces "$1")"
+replace_backslash_by_double "$(strip_leading_spaces "$1")"
 }
 
 # Keep only x first words
@@ -343,7 +343,7 @@ function clean_for_echo {
 #
 # R - X first words
 function keep_x_first_words {
-  echo "$1" | tr ' ' '\n' | head -"${2}" | xargs -n"${2}"
+echo "$1" | tr ' ' '\n' | head -"${2}" | xargs -n"${2}"
 }
 
 # Keep only x last words
@@ -352,7 +352,7 @@ function keep_x_first_words {
 #
 # R - X last words
 function keep_x_last_words {
-  echo "$1" | tr ' ' '\n' | tail -"${2}" | xargs -n"${2}"
+echo "$1" | tr ' ' '\n' | tail -"${2}" | xargs -n"${2}"
 }
 
 # Create a new tmp file 
@@ -360,7 +360,7 @@ function keep_x_last_words {
 #
 # R - path tho file
 function create_file {
-  mktemp -p "${TEMP_DIR}" "${1}_XXXXX.tmp"
+mktemp -p "${TEMP_DIR}" "${1}_XXXXX.tmp"
 }
 
 # Reduce string to the first X words. It will also add [...] if word are removed
@@ -369,24 +369,24 @@ function create_file {
 #
 # R - String with less words
 function reduce_string_size_first {
-  local STR=$1
-  local LEN=$2
+local STR=$1
+local LEN=$2
 
-  local OUT
-  OUT=$(keep_x_first_words "$STR" "$LEN")
-  if [ "$(echo "$OUT" | wc -w)" -eq "$(echo "$STR" | wc -w)" ]; then
-    echo "$STR"
-  else
-    local DEB=""
-    local END=""
-    if [ "${STR: -1}" == " " ]; then
-      END=" "
-    fi
-    if [ "${STR: 0}" == " " ]; then
-      DEB=" "
-    fi
-    echo "$DEB$OUT [...]$END"
+local OUT
+OUT=$(keep_x_first_words "$STR" "$LEN")
+if [ "$(echo "$OUT" | wc -w)" -eq "$(echo "$STR" | wc -w)" ]; then
+  echo "$STR"
+else
+  local DEB=""
+  local END=""
+  if [ "${STR: -1}" == " " ]; then
+    END=" "
   fi
+  if [ "${STR: 0}" == " " ]; then
+    DEB=" "
+  fi
+  echo "$DEB$OUT [...]$END"
+fi
 }
 
 # Reduce string to the last X words. It will also add [...] if word are removed
@@ -395,24 +395,24 @@ function reduce_string_size_first {
 #
 # R - String with less words
 function reduce_string_size_last {
-  local STR=$1
-  local LEN=$2
+local STR=$1
+local LEN=$2
 
-  local OUT
-  OUT=$(keep_x_last_words "$STR" "$LEN")
-  if [ "$(echo "$OUT" | wc -w)" -eq "$(echo "$STR" | wc -w)" ]; then
-    echo "$STR"
-  else
-    local DEB=""
-    local END=""
-    if [ "${STR: -1}" == " " ]; then
-      END=" "
-    fi
-    if [ "${STR:0:1}" == " " ]; then
-      DEB=" "
-    fi
-    echo "${DEB}[...] $OUT$END"
+local OUT
+OUT=$(keep_x_last_words "$STR" "$LEN")
+if [ "$(echo "$OUT" | wc -w)" -eq "$(echo "$STR" | wc -w)" ]; then
+  echo "$STR"
+else
+  local DEB=""
+  local END=""
+  if [ "${STR: -1}" == " " ]; then
+    END=" "
   fi
+  if [ "${STR:0:1}" == " " ]; then
+    DEB=" "
+  fi
+  echo "${DEB}[...] $OUT$END"
+fi
 }
 
 # Reduce string to the last and first X words. It will also add [...] if word are removed
@@ -421,27 +421,27 @@ function reduce_string_size_last {
 #
 # R - String with less words
 function reduce_string_size {
-  local STR=$1
-  local LEN=$2
+local STR=$1
+local LEN=$2
 
-  local FIRST
-  FIRST=$(keep_x_first_words "$STR" "$LEN")
-  local LAST
-  FIRST=$(keep_x_last_words "$STR" "$LEN")
-  if [ $(($(echo "$FIRST" | wc -w) + $(echo "$LAST" | wc -w))) -lt "$(echo "$STR" | wc -w)" ]; then
-    local OUT="$FIRST [...] $LAST"
-    local DEB=""
-    local END=""
-    if [ "${STR: -1}" == " " ]; then
-      END=" "
-    fi
-    if [ "${STR:0:1}" == " " ]; then
-      DEB=" "
-    fi
-    echo "$DEB$OUT$END"
-  else
-    echo "$STR"
+local FIRST
+FIRST=$(keep_x_first_words "$STR" "$LEN")
+local LAST
+FIRST=$(keep_x_last_words "$STR" "$LEN")
+if [ $(($(echo "$FIRST" | wc -w) + $(echo "$LAST" | wc -w))) -lt "$(echo "$STR" | wc -w)" ]; then
+  local OUT="$FIRST [...] $LAST"
+  local DEB=""
+  local END=""
+  if [ "${STR: -1}" == " " ]; then
+    END=" "
   fi
+  if [ "${STR:0:1}" == " " ]; then
+    DEB=" "
+  fi
+  echo "$DEB$OUT$END"
+else
+  echo "$STR"
+fi
 }
 
 # Report all error of a file
@@ -449,148 +449,148 @@ function reduce_string_size {
 #
 # R - "TMP_FILE_DIFF" "TMP_FILE_STDOUT" "L_ERRORS" "L_UNKNOWN_WORDS"
 function report_file {
-  local FILE=$1
-  local FILENAME
-  FILENAME=$(basename "$FILE")
+local FILE=$1
+local FILENAME
+FILENAME=$(basename "$FILE")
 
-  local L_ERRORS=0
-  local L_UNKNOWN_WORDS=0
+local L_ERRORS=0
+local L_UNKNOWN_WORDS=0
 
-  # Generate TMP 1
-  local TMP_FILE_1
-  TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
-  errors_and_suggestions "$FILE" "$TMP_FILE_1"
+# Generate TMP 1
+local TMP_FILE_1
+TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
+errors_and_suggestions "$FILE" "$TMP_FILE_1"
 
-  
-  # Generate TMP 2
-  local TMP_FILE_2
-  TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
-  lines_with_errors "$FILE" "$TMP_FILE_2" 
 
-  local TMP_FILE_DIFF
-  TMP_FILE_DIFF=$(mktemp -p "${TEMP_DIR}" "${FILENAME}3_XXXXX.tmp")
-  
-  local TMP_FILE_STDOUT
-  TMP_FILE_STDOUT=$(mktemp -p "${TEMP_DIR}" "${FILENAME}5_XXXXX.tmp")
+# Generate TMP 2
+local TMP_FILE_2
+TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
+lines_with_errors "$FILE" "$TMP_FILE_2" 
 
-  # Count the # of lines (errors) in file
-  local N_LINES
-  N_LINES=$(wc -l "$TMP_FILE_1" | awk '{ print $1 }') 
-  
-  if [ "$N_LINES" -eq 1 ]; then 
-    if [[ $(cat "$TMP_FILE_1") == "" ]]; then
-      N_LINES=0
-      cat /dev/null > "$TMP_FILE_1"
-    fi
+local TMP_FILE_DIFF
+TMP_FILE_DIFF=$(mktemp -p "${TEMP_DIR}" "${FILENAME}3_XXXXX.tmp")
+
+local TMP_FILE_STDOUT
+TMP_FILE_STDOUT=$(mktemp -p "${TEMP_DIR}" "${FILENAME}5_XXXXX.tmp")
+
+# Count the # of lines (errors) in file
+local N_LINES
+N_LINES=$(wc -l "$TMP_FILE_1" | awk '{ print $1 }') 
+
+if [ "$N_LINES" -eq 1 ]; then 
+  if [[ $(cat "$TMP_FILE_1") == "" ]]; then
+    N_LINES=0
+    cat /dev/null > "$TMP_FILE_1"
+  fi
+fi
+
+if [ $N_LINES -eq 0 ]; then
+  if [ "$VERBOSITY" -ge 1 ]; then
+    echo "$FILE" " contains no error" >> "$TMP_FILE_STDOUT"
   fi
 
-  if [ $N_LINES -eq 0 ]; then
-    if [ "$VERBOSITY" -ge 1 ]; then
-      echo "$FILE" " contains no error" >> "$TMP_FILE_STDOUT"
-    fi
+else
+  #local DIFF_FILE="${FILE}${DIFF_EXT}"
+  echo "Created by texspell">> "$TMP_FILE_DIFF"
 
-  else
-    #local DIFF_FILE="${FILE}${DIFF_EXT}"
-    echo "Created by texspell">> "$TMP_FILE_DIFF"
+  j=0
+  k=-1
+  POS=0
+  COLORIZED_LINE=""
+  COLORIZED_ERRORS=""
+  for (( i=1; i <= N_LINES ; i++ ))
+  do
+    SUGGESTIONS=$(ith_line_file "$TMP_FILE_1" "$i")
 
-    j=0
-    k=-1
-    POS=0
-    COLORIZED_LINE=""
-    COLORIZED_ERRORS=""
-    for (( i=1; i <= N_LINES ; i++ ))
-    do
-      SUGGESTIONS=$(ith_line_file "$TMP_FILE_1" "$i")
+    if [ -z "${SUGGESTIONS}" ]; then
+      j=$((j+1))
+    else
+      if [ $j -gt $k ]; then
 
-      if [ -z "${SUGGESTIONS}" ]; then
-        j=$((j+1))
-      else
-        if [ $j -gt $k ]; then
-
-          if [ "$VERBOSITY" -ge 2 ] && [ -n "${COLORIZED_ERRORS}" ]; then
-            if [ "$VERBOSITY" -lt 3 ]; then
-              COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
-            else
-              COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
-            fi
-            COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
-            {
-              echo -e "$COLORIZED_LINE"
-              echo -e "$COLORIZED_ERRORS"
-              echo "-----"
-            } >> "$TMP_FILE_STDOUT"
-            COLORIZED_LINE=""
-            COLORIZED_ERRORS=""
-            POS=0
-          fi
-
-          ERRORNOUS_LINE="$(ith_line_file "$TMP_FILE_2" $j)"
-          LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" "$FILE")
-
-          {
-            echo "----"
-            echo "In line ${LINE_NO}:"
-            echo "$ERRORNOUS_LINE"
-          } >> "$TMP_FILE_DIFF"
-          k=$j
-        fi
-        
-        echo "$SUGGESTIONS" >> "$TMP_FILE_DIFF"
-
-        if [ "$VERBOSITY" -ge 2 ]; then
-          MATCH="(V([0-9]+):\s)(\S+)(\s=>\s)(.+)"
-          SUBS1="\1\\${RED}\3\\${NC}\4\\${GREEN}\5\\${NC}"
-          SUBS2="\2"
-          SUBS3="\3"
-          V_POSITION=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS2}")
-          ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
-          COLORIZED_SUGG=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS1}")
-          if [ -z "$COLORIZED_ERRORS" ]; then
-            COLORIZED_ERRORS="${COLORIZED_SUGG}"
-          else
-            COLORIZED_ERRORS+="\n${COLORIZED_SUGG}"
-          fi
-          LENGTH=$((V_POSITION-POS))
-          PREV_NC=${ERRORNOUS_LINE:$POS:$LENGTH}
-          PREV_NC=$(replace_backslash_by_double "${PREV_NC}")
+        if [ "$VERBOSITY" -ge 2 ] && [ -n "${COLORIZED_ERRORS}" ]; then
           if [ "$VERBOSITY" -lt 3 ]; then
-            if [ $POS -eq 0 ]; then 
-              PREV_NC=$(reduce_string_size_last "$PREV_NC" $N_WORD_KEPT)
-            else
-              PREV_NC=$(reduce_string_size "$PREV_NC" $N_WORD_KEPT)
-            fi
+            COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
+          else
+            COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
           fi
-          COLORIZED_LINE+="${PREV_NC}${RED}${ERRORNOUS_WORD}${NC}"
-          POS=$((V_POSITION+${#ERRORNOUS_WORD}))
+          COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
+          {
+            echo -e "$COLORIZED_LINE"
+            echo -e "$COLORIZED_ERRORS"
+            echo "-----"
+          } >> "$TMP_FILE_STDOUT"
+          COLORIZED_LINE=""
+          COLORIZED_ERRORS=""
+          POS=0
         fi
-      fi
-    done
-    # Print last line
-    if [ "$VERBOSITY" -ge 2 ] && [ -n "${COLORIZED_ERRORS}" ]; then
-      if [ "$VERBOSITY" -lt 3 ]; then
-        COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
-      else
-        COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
-      fi
-      COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
 
-      echo -e "$COLORIZED_LINE" >> "$TMP_FILE_STDOUT"
-      echo -e "$COLORIZED_ERRORS" >> "$TMP_FILE_STDOUT"
+        ERRORNOUS_LINE="$(ith_line_file "$TMP_FILE_2" $j)"
+        LINE_NO=$(first_match_lineno_file "${ERRORNOUS_LINE}" "$FILE")
+
+        {
+          echo "----"
+          echo "In line ${LINE_NO}:"
+          echo "$ERRORNOUS_LINE"
+        } >> "$TMP_FILE_DIFF"
+        k=$j
+      fi
+      
+      echo "$SUGGESTIONS" >> "$TMP_FILE_DIFF"
+
+      if [ "$VERBOSITY" -ge 2 ]; then
+        MATCH="(V([0-9]+):\s)(\S+)(\s=>\s)(.+)"
+        SUBS1="\1\\${RED}\3\\${NC}\4\\${GREEN}\5\\${NC}"
+        SUBS2="\2"
+        SUBS3="\3"
+        V_POSITION=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS2}")
+        ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
+        COLORIZED_SUGG=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS1}")
+        if [ -z "$COLORIZED_ERRORS" ]; then
+          COLORIZED_ERRORS="${COLORIZED_SUGG}"
+        else
+          COLORIZED_ERRORS+="\n${COLORIZED_SUGG}"
+        fi
+        LENGTH=$((V_POSITION-POS))
+        PREV_NC=${ERRORNOUS_LINE:$POS:$LENGTH}
+        PREV_NC=$(replace_backslash_by_double "${PREV_NC}")
+        if [ "$VERBOSITY" -lt 3 ]; then
+          if [ $POS -eq 0 ]; then 
+            PREV_NC=$(reduce_string_size_last "$PREV_NC" $N_WORD_KEPT)
+          else
+            PREV_NC=$(reduce_string_size "$PREV_NC" $N_WORD_KEPT)
+          fi
+        fi
+        COLORIZED_LINE+="${PREV_NC}${RED}${ERRORNOUS_WORD}${NC}"
+        POS=$((V_POSITION+${#ERRORNOUS_WORD}))
+      fi
     fi
+  done
+  # Print last line
+  if [ "$VERBOSITY" -ge 2 ] && [ -n "${COLORIZED_ERRORS}" ]; then
+    if [ "$VERBOSITY" -lt 3 ]; then
+      COLORIZED_LINE+=$(reduce_string_size_first "${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}" $N_WORD_KEPT)
+    else
+      COLORIZED_LINE+="${ERRORNOUS_LINE:$POS:${#ERRORNOUS_LINE}}"
+    fi
+    COLORIZED_LINE=$(strip_leading_spaces "$COLORIZED_LINE")
 
-    
-    L_ERRORS=$(($(grep -c "[=>]" "$TMP_FILE_1")))
-    L_UNKNOWN_WORDS=$(($(grep -c '[\#]' "$TMP_FILE_1")))
-    sed -i "2iNumber of errors: $L_ERRORS" "$TMP_FILE_DIFF"
-    sed -i "3iNumber of unknown words: $L_UNKNOWN_WORDS" "$TMP_FILE_DIFF"
-    # Shasum on file with errors
-    local SHASUM
-    SHASUM=$(sha256sum "$TMP_FILE_2")
-    sed -i "2iDate:  $(date)" "$TMP_FILE_DIFF"
-    sed -i "5iShasum: $SHASUM" "$TMP_FILE_DIFF"
-
+    echo -e "$COLORIZED_LINE" >> "$TMP_FILE_STDOUT"
+    echo -e "$COLORIZED_ERRORS" >> "$TMP_FILE_STDOUT"
   fi
-  echo "$TMP_FILE_DIFF $TMP_FILE_STDOUT" $L_ERRORS $L_UNKNOWN_WORDS
+
+  
+  L_ERRORS=$(($(grep -c "[=>]" "$TMP_FILE_1")))
+  L_UNKNOWN_WORDS=$(($(grep -c '[\#]' "$TMP_FILE_1")))
+  sed -i "2iNumber of errors: $L_ERRORS" "$TMP_FILE_DIFF"
+  sed -i "3iNumber of unknown words: $L_UNKNOWN_WORDS" "$TMP_FILE_DIFF"
+  # Shasum on file with errors
+  local SHASUM
+  SHASUM=$(sha256sum "$TMP_FILE_2")
+  sed -i "2iDate:  $(date)" "$TMP_FILE_DIFF"
+  sed -i "5iShasum: $SHASUM" "$TMP_FILE_DIFF"
+
+fi
+echo "$TMP_FILE_DIFF $TMP_FILE_STDOUT" $L_ERRORS $L_UNKNOWN_WORDS
 }
 
 # Before is old function
@@ -602,16 +602,16 @@ function report_file {
 #
 # R - Nothing
 function load_config {
-  local CONF_FILE=$1
-  if [ -f "$1" ]; then
-    for KEY in "${!CONFIG[@]}"; do
-      # Only select last matching pattern in config file
-      VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" "$CONF_FILE" | tail -n -1)
-      if [ -n "$VALUE" ]; then
-        CONFIG[$KEY]="$VALUE"
-      fi
-    done
-  fi
+local CONF_FILE=$1
+if [ -f "$1" ]; then
+  for KEY in "${!CONFIG[@]}"; do
+    # Only select last matching pattern in config file
+    VALUE=$(sed -n -E "s/^\s*${KEY}\s*=\s*(.*)\s*$/\1/p" "$CONF_FILE" | tail -n -1)
+    if [ -n "$VALUE" ]; then
+      CONFIG[$KEY]="$VALUE"
+    fi
+  done
+fi
 }
 
 
@@ -620,21 +620,21 @@ function load_config {
 #
 # R - string urlencoded
 function rawurlencode {
-  # We need this function because curl --data-encoded not work on \n
-  local string="${1}"
-  local strlen=${#string}
-  local encoded=""
-  local pos c o
+# We need this function because curl --data-encoded not work on \n
+local string="${1}"
+local strlen=${#string}
+local encoded=""
+local pos c o
 
-  for (( pos=0 ; pos<strlen ; pos++ )); do
-     c=${string:$pos:1}
-     case "$c" in
-        [-_.~a-zA-Z0-9] ) o="${c}" ;;
-        * )               printf -v o '%%%02x' "'$c"
-     esac
-     encoded+="${o}"
-  done
-  echo "${encoded}"    # You can either set a return variable (FASTER) 
+for (( pos=0 ; pos<strlen ; pos++ )); do
+   c=${string:$pos:1}
+   case "$c" in
+      [-_.~a-zA-Z0-9] ) o="${c}" ;;
+      * )               printf -v o '%%%02x' "'$c"
+   esac
+   encoded+="${o}"
+done
+echo "${encoded}"    # You can either set a return variable (FASTER) 
 }
 
 
@@ -644,7 +644,7 @@ function rawurlencode {
 # R - The response of languagetool
 function request_languagetool
 {
-  curl -s --data "language=en-US&data=$(rawurlencode "$1")" http://"${CONFIG[HOST]}":"${CONFIG[PORT]}"/v2/check
+curl -s --data "language=en-US&data=$(rawurlencode "$1")" http://"${CONFIG[HOST]}":"${CONFIG[PORT]}"/v2/check
 }
 
 # Will compute the number of \n a input text with a limit of chars to check
@@ -653,7 +653,7 @@ function request_languagetool
 # 
 # R - The number of \n
 function get_number_new_line {
-  echo "$1" | cut -c1-"$2" | grep -o '\n' | wc -l
+echo "$1" | cut -c1-"$2" | grep -o '\n' | wc -l
 }
 
 # Will compute the chars on the $2 lines of $1. New lines are made with \n
@@ -662,9 +662,9 @@ function get_number_new_line {
 #
 # R - Number of char
 function get_nb_char_up_to_line {
-  local CUTTED
-  CUTTED=$(echo "$1" | grep -o '.*\n')
-  echo ${#CUTTED}
+local CUTTED
+CUTTED=$(echo "$1" | grep -o '.*\n')
+echo ${#CUTTED}
 }
 
 # A function to cut the differents errors and process them
@@ -675,67 +675,81 @@ function get_nb_char_up_to_line {
 #
 # R - Nothing
 function split_and_process_languagetool {
-  local IN=$1
-  local OUT=$2
-  local OFFSET=$3
-  local SRC=$4
-  local CHARS_TO_CHECK=$5
+local IN=$1
+local OUT=$2
+local OFFSET=$3
+local SRC=$4
+local CHARS_TO_CHECK=$5
 
-  local ERRORS
+local ERRORS
 
-  # Cut the response of the servor the aves the errors
-  ERRORS=$(echo "$IN" | grep -o 'matches.*' | cut -f2- -d:)
-  ERRORS=${ERRORS%?}
+# Cut the response of the servor the aves the errors
+ERRORS=$(echo "$IN" | grep -o 'matches.*' | cut -f2- -d:)
+echo "$IN" > DUMP
+echo "CHECH" >> DUMP
+echo "$ERRORS" >> DUMP
+ERRORS=${ERRORS%?}
+echo "$ERRORS" >> DUMP
 
-  # No errors
-  if [[ $ERRORS == "[]" ]]; then
-    return
-  fi 
-    
-  #Variable declaration
-  local LINENUMBER
-  local OLDLINENUMBER
-  local CUTTED_TEXT
-  local delimiter
-  local s
-  local ERROR
-  local ERR
-  local LEN_ERR
-  local POS_ERR
-  local SENTENCE
-  local REPLS
-  local NB_REPL
-  local REPL
-  local i 
-  OLDLINENUMBER=-1
 
-  # Split each correction 
-  delimiter='{"message'
-  s=$ERRORS$delimiter
-  while [[ $s ]]; do
+# No errors
+if [[ $ERRORS == "[]" ]]; then
+  return
+fi 
+  
+#Variable declaration
+local LINENUMBER
+local OLDLINENUMBER
+local CUTTED_TEXT
+local delimiter
+local s
+local ERROR
+local ERR
+local LEN_ERR
+local POS_ERR
+local SENTENCE
+local REPLS
+local NB_REPL
+local REPL
+local i 
+OLDLINENUMBER=-1
+
+# Split each correction 
+delimiter='{"message'
+s=$ERRORS$delimiter
+echo "$s" >> DUMP
+while [[ $s ]]; do
+  ERR=( "${s%%"$delimiter"*}" );
+  ERROR=${ERR[0]} # To please linter
+
+  echo "<$ERROR>" >>DUMP
+  # Remove first elem from the array
+  while [[ ${#ERROR} -eq 0 ]] || [[ $ERROR == "[" ]]; do
+    echo "Mange tes morts" >>DUMP
+    s=${s#*"$delimiter"};
     ERR=( "${s%%"$delimiter"*}" );
     ERROR=${ERR[0]} # To please linter
+  done
 
-    # Remove first elem from the array
-    if [[ $ERROR == "[" ]]; then
-      s=${s#*"$delimiter"};
-      ERR=( "${s%%"$delimiter"*}" );
-      ERROR=${ERR[0]} # To please linter
-    fi
+    echo "CEHCH" >> DUMP
+    echo "<$ERROR>" >> DUMP
+    echo "HELLO" >&2
+    echo "$ERROR" >&2
 
 
-    # Fetch position, length and sentence of the error
-    POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
-    LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
-    SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
-    
-    # Clean sentence and fetch line number
-    LINENUMBER=$(echo "${CHARS_TO_CHECK:0:$POS_ERR}" | grep -o '<br/>' | wc -l ) 
+  # Fetch position, length and sentence of the error
+  POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+  LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+  SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
 
-    CUTTED_TEXT=${CHARS_TO_CHECK:0:$POS_ERR}
-    CUTTED_TEXT=$( echo "${CUTTED_TEXT//<br\/>/\|}" | rev | cut -d '|' -f 1)
-    # fix regex to exculde br
-    LINENUMBER=$(($LINENUMBER+1))
+   
+  # Clean sentence and fetch line number
+  LINENUMBER=$(echo "${CHARS_TO_CHECK:0:$POS_ERR}" | grep -o '<br/>' | wc -l ) 
+
+  CUTTED_TEXT=${CHARS_TO_CHECK:0:$POS_ERR}
+  CUTTED_TEXT=$( echo "${CUTTED_TEXT//<br\/>/\|}" | rev | cut -d '|' -f 1)
+  # fix regex to exculde br
+  LINENUMBER=$(($LINENUMBER+1))
     
     
     # Update the position to get position in the line
@@ -770,7 +784,9 @@ function split_and_process_languagetool {
 
     # Fetch the message
     local MSG
+    #echo "$ERROR" >&2
     MSG=$(echo "$ERROR" | grep -o '.*","shortMessage' | sed 's/":"//' | sed 's/","shortMessage//')
+    echo "$MSG" >&2
 
     # Output the message
     echo "$POS_ERR|$LEN_ERR|$MSG|$NB_REPL$REPL" >> "$OUT"
@@ -798,7 +814,7 @@ function tex_parser_opendetex {
     detex "$SRC" > "$PLAINTEX"
     detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
   fi
-  sed -i 's/\t/\\t/' "$PLAINTEX"
+  sed -i 's/\t/\\t/g' "$PLAINTEX"
 }
 
 ##################
@@ -827,6 +843,8 @@ function spell_checker_hunspell {
   FILE_LINES_ERROR=$(create_file "lines_with_errors")
   errors_and_suggestions "$IN" "$FILE_ERROR_AND_SUGG"
   lines_with_errors "$IN" "$FILE_LINES_ERROR" 
+  echo "$FILE_ERROR_AND_SUGG" >&2
+  echo "$FILE_LINES_ERROR" >&2
 
   N_LINES=$(wc -l "$FILE_ERROR_AND_SUGG" | awk '{ print $1 }') 
   
@@ -881,7 +899,7 @@ function spell_checker_hunspell {
           V_POSITION=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS2}")
           ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
           ERRORNOUS=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "\5")
-          NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o)
+          NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o | head -1)
           PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" "|" | cut -f2- -d ' ')
           echo "$V_POSITION|${#ERRORNOUS_WORD}|Word not in the dict|$NUMBER_PROP|$PROPS|" >> "$OUT"
 
@@ -1061,6 +1079,7 @@ function aggregator_sdtout {
     NB_ERRORS=$(echo "$LINE" | cut  -f4 -d "|" )
     PLAINTEXT_NLINE=$(ith_line_file "$ERR_FILE" "$ERRORTEXT_NLINE")
     PLAINTEXT_LINE=$(ith_line_file "$PLAINTEXT_FILE" "$PLAINTEXT_NLINE")
+    #PLAINTEXT_LINE=$(echo "$PLAINTEXT_LINE" | sed 's/\\t/ /')
     echo "At line $SRCTEXT_NLINE :" >&2
 
     # Error coloring
