@@ -675,84 +675,70 @@ echo ${#CUTTED}
 #
 # R - Nothing
 function split_and_process_languagetool {
-local IN=$1
-local OUT=$2
-local OFFSET=$3
-local SRC=$4
-local CHARS_TO_CHECK=$5
+  local IN=$1
+  local OUT=$2
+  local OFFSET=$3
+  local SRC=$4
+  local CHARS_TO_CHECK=$5
 
-local ERRORS
+  local ERRORS
 
-# Cut the response of the servor the aves the errors
-ERRORS=$(echo "$IN" | grep -o 'matches.*' | cut -f2- -d:)
-echo "$IN" > DUMP
-echo "CHECH" >> DUMP
-echo "$ERRORS" >> DUMP
-ERRORS=${ERRORS%?}
-echo "$ERRORS" >> DUMP
+  # Cut the response of the servor the aves the errors
+  ERRORS=$(echo "$IN" | grep -o 'matches.*' | cut -f2- -d:)
+  ERRORS=${ERRORS%?}
 
+  # No errors
+  if [[ $ERRORS == "[]" ]]; then
+    return
+  fi 
+    
+  #Variable declaration
+  local LINENUMBER
+  local OLDLINENUMBER
+  local CUTTED_TEXT
+  local delimiter
+  local s
+  local ERROR
+  local ERR
+  local LEN_ERR
+  local POS_ERR
+  #local SENTENCE
+  local REPLS
+  local NB_REPL
+  local REPL
+  local i 
+  OLDLINENUMBER=-1
 
-# No errors
-if [[ $ERRORS == "[]" ]]; then
-  return
-fi 
-  
-#Variable declaration
-local LINENUMBER
-local OLDLINENUMBER
-local CUTTED_TEXT
-local delimiter
-local s
-local ERROR
-local ERR
-local LEN_ERR
-local POS_ERR
-local SENTENCE
-local REPLS
-local NB_REPL
-local REPL
-local i 
-OLDLINENUMBER=-1
-
-# Split each correction 
-delimiter='{"message'
-s=$ERRORS$delimiter
-echo "$s" >> DUMP
-while [[ $s ]]; do
-  ERR=( "${s%%"$delimiter"*}" );
-  ERROR=${ERR[0]} # To please linter
-
-  echo "<$ERROR>" >>DUMP
-  # Remove first elem from the array
-  while [[ ${#ERROR} -eq 0 ]] || [[ $ERROR == "[" ]]; do
-    echo "Mange tes morts" >>DUMP
-    s=${s#*"$delimiter"};
+  # Split each correction 
+  delimiter='{"message'
+  s=$ERRORS$delimiter
+  while [[ $s ]]; do
     ERR=( "${s%%"$delimiter"*}" );
     ERROR=${ERR[0]} # To please linter
-  done
 
-    echo "CEHCH" >> DUMP
-    echo "<$ERROR>" >> DUMP
-    echo "HELLO" >&2
-    echo "$ERROR" >&2
+    while [[ "$ERROR" == "[" ]]; do
+      s=${s#*"$delimiter"};
+      ERR=( "${s%%"$delimiter"*}" );
+      ERROR=${ERR[0]} # To please linter
+    done;
 
+    # Fetch position, length and sentence of the error
+    POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+    LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
+    #SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
+    
+    # Clean sentence and fetch line number
+    LINENUMBER=$(echo "${CHARS_TO_CHECK:0:$POS_ERR}" | grep -o '<br/>' | wc -l ) 
 
-  # Fetch position, length and sentence of the error
-  POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
-  LEN_ERR=$(echo "$ERROR" | grep -Eo 'length":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
-  SENTENCE=$(echo "$ERROR" | grep -Eo 'sentence":".*' | grep -Eo '.*","type' )
-
-   
-  # Clean sentence and fetch line number
-  LINENUMBER=$(echo "${CHARS_TO_CHECK:0:$POS_ERR}" | grep -o '<br/>' | wc -l ) 
-
-  CUTTED_TEXT=${CHARS_TO_CHECK:0:$POS_ERR}
-  CUTTED_TEXT=$( echo "${CUTTED_TEXT//<br\/>/\|}" | rev | cut -d '|' -f 1)
-  # fix regex to exculde br
-  LINENUMBER=$(($LINENUMBER+1))
+    CUTTED_TEXT=${CHARS_TO_CHECK:0:$POS_ERR}
+    CUTTED_TEXT=$( echo "${CUTTED_TEXT//<br\/>/\|}" | rev | cut -d '|' -f 1)
+    # fix regex to exculde br
+    LINENUMBER=$((LINENUMBER+1))
     
     
     # Update the position to get position in the line
+    
+    CUTTED_TEXT=$( echo "$CUTTED_TEXT" | rev)
 
     POS_ERR=${#CUTTED_TEXT}
 
@@ -786,7 +772,6 @@ while [[ $s ]]; do
     local MSG
     #echo "$ERROR" >&2
     MSG=$(echo "$ERROR" | grep -o '.*","shortMessage' | sed 's/":"//' | sed 's/","shortMessage//')
-    echo "$MSG" >&2
 
     # Output the message
     echo "$POS_ERR|$LEN_ERR|$MSG|$NB_REPL$REPL" >> "$OUT"
@@ -814,7 +799,8 @@ function tex_parser_opendetex {
     detex "$SRC" > "$PLAINTEX"
     detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
   fi
-  sed -i 's/\t/\\t/g' "$PLAINTEX"
+  sed -i 's/\t/ /g' "$PLAINTEX"
+  sed -i -e 's/^[ \t]*//g' "$MATCHER"
 }
 
 ##################
@@ -843,8 +829,6 @@ function spell_checker_hunspell {
   FILE_LINES_ERROR=$(create_file "lines_with_errors")
   errors_and_suggestions "$IN" "$FILE_ERROR_AND_SUGG"
   lines_with_errors "$IN" "$FILE_LINES_ERROR" 
-  echo "$FILE_ERROR_AND_SUGG" >&2
-  echo "$FILE_LINES_ERROR" >&2
 
   N_LINES=$(wc -l "$FILE_ERROR_AND_SUGG" | awk '{ print $1 }') 
   
@@ -1007,6 +991,8 @@ function aggregator_sdtout {
   local LINE_MATCHER
   local TMP_LINE
   local NB_ERROR
+  local i2
+  local LINE_NUMB
   NEW_ERROR=1
 
   # Make the match between the error file/input file
@@ -1018,10 +1004,16 @@ function aggregator_sdtout {
       NEW_ERROR=0
       NB_ERROR=0
       LINE_MATCHER=$(ith_line_file "$MATCH_FILE" "$LINE")
-      TMP_LINE="${LINE_MATCHER/:/|}|$i"
+      printf -v i2 "%06d" "$i"
+      LINE_NUMB=$(echo "$LINE_MATCHER" | cut -d ':' -f2)
+      printf -v LINE_NUMB "%06d" "$LINE_NUMB"
+      TMP_LINE=$(echo "$LINE_MATCHER" | cut -d ':' -f1)
+      TMP_LINE="$TMP_LINE $LINE_NUMB $i2"
+      
       
     elif [[ $LINE == "" ]]; then
-      TMP_LINE="$TMP_LINE|$NB_ERROR"
+      printf -v NB_ERROR "%06d" "$NB_ERROR"
+      TMP_LINE="$TMP_LINE $NB_ERROR"
       echo "$TMP_LINE" >> "$SORTED_FILE"
       NEW_ERROR=1
     else
@@ -1030,14 +1022,18 @@ function aggregator_sdtout {
   done
 
   if [ $NEW_ERROR -eq 0 ]; then
-    TMP_LINE="$TMP_LINE|$NB_ERROR"
+      printf -v NB_ERROR "%06d" "$NB_ERROR"
+    TMP_LINE="$TMP_LINE $NB_ERROR"
     echo "$TMP_LINE" >> "$SORTED_FILE"
   fi
 
   # Sort the error by file 
   local SORTED_FILE_OUTPUT
   SORTED_FILE_OUTPUT=$(create_file "sorted_output")
-  sort "$SORTED_FILE" > "$SORTED_FILE_OUTPUT"
+  sort -g "$SORTED_FILE" > "$SORTED_FILE_OUTPUT"
+
+   sed -i -e 's/ 0*/ /g' "$SORTED_FILE_OUTPUT"
+   cat "$SORTED_FILE_OUTPUT"
 
   local OLD_FILENAME
   local FILENAME
@@ -1063,24 +1059,24 @@ function aggregator_sdtout {
   for (( i=1; i <= N_LINES ; i++ ))
   do
     LINE=$(ith_line_file "$SORTED_FILE_OUTPUT" "$i")
-    FILENAME=$(echo "$LINE" | cut  -f1 -d "|" )
+    FILENAME=$(echo "$LINE" | cut  -f1 -d " " )
 
     # If we are on a new filename
     if [[ "$OLD_FILENAME" != "$FILENAME" ]]; then
       OLD_FILENAME="$FILENAME"
-      echo "" >&2
-      echo "$FILENAME" >&2
-      echo "========" >&2
+      echo ""
+      echo "$FILENAME"
+      echo "========"
     fi
 
     # Fetch the different line
-    SRCTEXT_NLINE=$(echo "$LINE" | cut  -f2 -d "|" )
-    ERRORTEXT_NLINE=$(echo "$LINE" | cut  -f3 -d "|" )
-    NB_ERRORS=$(echo "$LINE" | cut  -f4 -d "|" )
+    SRCTEXT_NLINE=$(echo "$LINE" | cut  -f2 -d " " )
+    ERRORTEXT_NLINE=$(echo "$LINE" | cut  -f3 -d " " )
+    NB_ERRORS=$(echo "$LINE" | cut  -f4 -d " " )
     PLAINTEXT_NLINE=$(ith_line_file "$ERR_FILE" "$ERRORTEXT_NLINE")
     PLAINTEXT_LINE=$(ith_line_file "$PLAINTEXT_FILE" "$PLAINTEXT_NLINE")
-    #PLAINTEXT_LINE=$(echo "$PLAINTEXT_LINE" | sed 's/\\t/ /')
-    echo "At line $SRCTEXT_NLINE :" >&2
+    PLAINTEXT_LINE=$(echo "$PLAINTEXT_LINE" | sed 's/\\t//g')
+    echo "At line $SRCTEXT_NLINE :"
 
     # Error coloring
     for ((j="$ERRORTEXT_NLINE" + "$NB_ERRORS"; j >= "$ERRORTEXT_NLINE" +1; j--))
@@ -1090,7 +1086,7 @@ function aggregator_sdtout {
       LENGTH=$(echo "$ERRORED_LINE" | cut  -f2 -d "|" )
       PLAINTEXT_LINE="${PLAINTEXT_LINE:0:OFFSET}$RED${PLAINTEXT_LINE:$OFFSET:$LENGTH}$NC${PLAINTEXT_LINE:$OFFSET+$LENGTH}"
     done
-    echo -e "$PLAINTEXT_LINE" >&2
+    echo -e "$PLAINTEXT_LINE"
     
     #Output of each errors
     for ((j="$ERRORTEXT_NLINE" +1; j <= "$ERRORTEXT_NLINE" + "$NB_ERRORS"; j++))
@@ -1100,11 +1096,11 @@ function aggregator_sdtout {
       LENGTH=$(echo "$ERRORED_LINE" | cut  -f2 -d "|" )
       MSG=$(echo "$ERRORED_LINE" | cut  -f3 -d "|" )
       NB_PROP=$(echo "$ERRORED_LINE" | cut  -f4 -d "|" )
-      echo "+ O: $OFFSET L: $LENGTH  $MSG" >&2
+      echo "+ O: $OFFSET L: $LENGTH  $MSG"
       for ((k = 5; k < 5 + "$NB_PROP"; k++))
       do
         PROP=$(echo "$ERRORED_LINE" | cut  -f"$k" -d "|" )
-        echo "  + $PROP" >&2
+        echo "  + $PROP"
       done
 
     done
@@ -1134,14 +1130,12 @@ PLAINTEX_FILE=$(create_file "plaintext")
 MATCHER_FILE=$(create_file "match_plaintex_input")
 ERRORED_FILE=$(create_file "errored_input")
 
+echo "$ERRORED_FILE"
+echo "$MATCHER_FILE" >&2
+
 cd "$(dirname "$SRC")" || exit 1
 tex_parser_opendetex "$(basename "$SRC")" "$PLAINTEX_FILE" "$MATCHER_FILE"
 cd ~- || return
-
-echo "$PLAINTEX_FILE"
-echo "$MATCHER_FILE"
-echo "$ERRORED_FILE"
-
 
 if [ "${CONFIG[SPELLCHECK]}" == "LANGUAGETOOLS" ];then
   if [ "$VERBOSITY" -eq 2 ]; then
