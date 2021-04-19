@@ -260,7 +260,7 @@ function errors_and_suggestions {
   sed -i '1d' "$OUT"
   # Remove extra linebreaks
   sed -i '/^$/N;/^\n$/D' "$OUT"
-  
+
   MATCH="&\s(\S+)\s([0-9]+)\s([0-9]+):\s(.+)"
   SUBS="V\3: \1 => (\2) \4"
 
@@ -461,7 +461,7 @@ function report_file {
   TMP_FILE_1=$(mktemp -p "${TEMP_DIR}" "${FILENAME}1_XXXXX.tmp")
   errors_and_suggestions "$FILE" "$TMP_FILE_1"
 
-  
+
   # Generate TMP 2
   local TMP_FILE_2
   TMP_FILE_2=$(mktemp -p "${TEMP_DIR}" "${FILENAME}2_XXXXX.tmp")
@@ -469,14 +469,14 @@ function report_file {
 
   local TMP_FILE_DIFF
   TMP_FILE_DIFF=$(mktemp -p "${TEMP_DIR}" "${FILENAME}3_XXXXX.tmp")
-  
+
   local TMP_FILE_STDOUT
   TMP_FILE_STDOUT=$(mktemp -p "${TEMP_DIR}" "${FILENAME}5_XXXXX.tmp")
 
   # Count the # of lines (errors) in file
   local N_LINES
   N_LINES=$(wc -l "$TMP_FILE_1" | awk '{ print $1 }') 
-  
+
   if [ "$N_LINES" -eq 1 ]; then 
     if [[ $(cat "$TMP_FILE_1") == "" ]]; then
       N_LINES=0
@@ -620,7 +620,7 @@ function load_config {
 #
 # R - string urlencoded
 function rawurlencode {
-  # We need this function because curl --data-encoded not work on \n
+# We need this function because curl --data-encoded not work on \n
   local string="${1}"
   local strlen=${#string}
   local encoded=""
@@ -716,13 +716,11 @@ function split_and_process_languagetool {
     ERR=( "${s%%"$delimiter"*}" );
     ERROR=${ERR[0]} # To please linter
 
-    # Remove first elem from the array
-    if [[ $ERROR == "[" ]]; then
+    while [[ "$ERROR" == "[" ]]; do
       s=${s#*"$delimiter"};
       ERR=( "${s%%"$delimiter"*}" );
       ERROR=${ERR[0]} # To please linter
-    fi
-
+    done;
 
     # Fetch position, length and sentence of the error
     POS_ERR=$(echo "$ERROR" | grep -Eo 'offset":[[:digit:]]+' | head -1 | grep -Eo '[[:digit:]]+')
@@ -739,6 +737,8 @@ function split_and_process_languagetool {
     
     
     # Update the position to get position in the line
+    
+    CUTTED_TEXT=$( echo "$CUTTED_TEXT" | rev)
 
     POS_ERR=${#CUTTED_TEXT}
 
@@ -770,6 +770,7 @@ function split_and_process_languagetool {
 
     # Fetch the message
     local MSG
+    #echo "$ERROR" >&2
     MSG=$(echo "$ERROR" | grep -o '.*","shortMessage' | sed 's/":"//' | sed 's/","shortMessage//')
 
     # Output the message
@@ -798,7 +799,8 @@ function tex_parser_opendetex {
     detex "$SRC" > "$PLAINTEX"
     detex -1 "$SRC" | cut -f1,2 -d':' > "$MATCHER"
   fi
-  sed -i 's/\t/\\t/' "$PLAINTEX"
+  sed -i 's/\t/ /g' "$PLAINTEX"
+  sed -i -e 's/^[ \t]*//g' "$MATCHER"
 }
 
 ##################
@@ -881,7 +883,7 @@ function spell_checker_hunspell {
           V_POSITION=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS2}")
           ERRORNOUS_WORD=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "${SUBS3}")
           ERRORNOUS=$(regex_sub "${SUGGESTIONS}" "${MATCH}" "\5")
-          NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o)
+          NUMBER_PROP=$(echo "$ERRORNOUS" | grep -P "$MATCH_N_PROP" -o | head -1)
           PROPS=$(regex_sub "${ERRORNOUS}" "${MATCH_PROPS}" "|" | cut -f2- -d ' ')
           echo "$V_POSITION|${#ERRORNOUS_WORD}|Word not in the dict|$NUMBER_PROP|$PROPS|" >> "$OUT"
 
@@ -989,6 +991,8 @@ function aggregator_sdtout {
   local LINE_MATCHER
   local TMP_LINE
   local NB_ERROR
+  local i2
+  local LINE_NUMB
   NEW_ERROR=1
 
   # Make the match between the error file/input file
@@ -1000,10 +1004,16 @@ function aggregator_sdtout {
       NEW_ERROR=0
       NB_ERROR=0
       LINE_MATCHER=$(ith_line_file "$MATCH_FILE" "$LINE")
-      TMP_LINE="${LINE_MATCHER/:/|}|$i"
+      printf -v i2 "%06d" "$i"
+      LINE_NUMB=$(echo "$LINE_MATCHER" | cut -d ':' -f2)
+      printf -v LINE_NUMB "%06d" "$LINE_NUMB"
+      TMP_LINE=$(echo "$LINE_MATCHER" | cut -d ':' -f1)
+      TMP_LINE="$TMP_LINE $LINE_NUMB $i2"
+      
       
     elif [[ $LINE == "" ]]; then
-      TMP_LINE="$TMP_LINE|$NB_ERROR"
+      printf -v NB_ERROR "%06d" "$NB_ERROR"
+      TMP_LINE="$TMP_LINE $NB_ERROR"
       echo "$TMP_LINE" >> "$SORTED_FILE"
       NEW_ERROR=1
     else
@@ -1012,14 +1022,18 @@ function aggregator_sdtout {
   done
 
   if [ $NEW_ERROR -eq 0 ]; then
-    TMP_LINE="$TMP_LINE|$NB_ERROR"
+      printf -v NB_ERROR "%06d" "$NB_ERROR"
+    TMP_LINE="$TMP_LINE $NB_ERROR"
     echo "$TMP_LINE" >> "$SORTED_FILE"
   fi
 
   # Sort the error by file 
   local SORTED_FILE_OUTPUT
   SORTED_FILE_OUTPUT=$(create_file "sorted_output")
-  sort "$SORTED_FILE" > "$SORTED_FILE_OUTPUT"
+  sort -g "$SORTED_FILE" > "$SORTED_FILE_OUTPUT"
+
+   sed -i -e 's/ 0*/ /g' "$SORTED_FILE_OUTPUT"
+   cat "$SORTED_FILE_OUTPUT"
 
   local OLD_FILENAME
   local FILENAME
@@ -1045,23 +1059,24 @@ function aggregator_sdtout {
   for (( i=1; i <= N_LINES ; i++ ))
   do
     LINE=$(ith_line_file "$SORTED_FILE_OUTPUT" "$i")
-    FILENAME=$(echo "$LINE" | cut  -f1 -d "|" )
+    FILENAME=$(echo "$LINE" | cut  -f1 -d " " )
 
     # If we are on a new filename
     if [[ "$OLD_FILENAME" != "$FILENAME" ]]; then
       OLD_FILENAME="$FILENAME"
-      echo "" >&2
-      echo "$FILENAME" >&2
-      echo "========" >&2
+      echo ""
+      echo "$FILENAME"
+      echo "========"
     fi
 
     # Fetch the different line
-    SRCTEXT_NLINE=$(echo "$LINE" | cut  -f2 -d "|" )
-    ERRORTEXT_NLINE=$(echo "$LINE" | cut  -f3 -d "|" )
-    NB_ERRORS=$(echo "$LINE" | cut  -f4 -d "|" )
+    SRCTEXT_NLINE=$(echo "$LINE" | cut  -f2 -d " " )
+    ERRORTEXT_NLINE=$(echo "$LINE" | cut  -f3 -d " " )
+    NB_ERRORS=$(echo "$LINE" | cut  -f4 -d " " )
     PLAINTEXT_NLINE=$(ith_line_file "$ERR_FILE" "$ERRORTEXT_NLINE")
     PLAINTEXT_LINE=$(ith_line_file "$PLAINTEXT_FILE" "$PLAINTEXT_NLINE")
-    echo "At line $SRCTEXT_NLINE :" >&2
+    PLAINTEXT_LINE=$(echo "$PLAINTEXT_LINE" | sed 's/\\t//g')
+    echo "At line $SRCTEXT_NLINE :"
 
     # Error coloring
     for ((j="$ERRORTEXT_NLINE" + "$NB_ERRORS"; j >= "$ERRORTEXT_NLINE" +1; j--))
@@ -1071,7 +1086,7 @@ function aggregator_sdtout {
       LENGTH=$(echo "$ERRORED_LINE" | cut  -f2 -d "|" )
       PLAINTEXT_LINE="${PLAINTEXT_LINE:0:OFFSET}$RED${PLAINTEXT_LINE:$OFFSET:$LENGTH}$NC${PLAINTEXT_LINE:$OFFSET+$LENGTH}"
     done
-    echo -e "$PLAINTEXT_LINE" >&2
+    echo -e "$PLAINTEXT_LINE"
     
     #Output of each errors
     for ((j="$ERRORTEXT_NLINE" +1; j <= "$ERRORTEXT_NLINE" + "$NB_ERRORS"; j++))
@@ -1081,11 +1096,11 @@ function aggregator_sdtout {
       LENGTH=$(echo "$ERRORED_LINE" | cut  -f2 -d "|" )
       MSG=$(echo "$ERRORED_LINE" | cut  -f3 -d "|" )
       NB_PROP=$(echo "$ERRORED_LINE" | cut  -f4 -d "|" )
-      echo "+ O: $OFFSET L: $LENGTH  $MSG" >&2
+      echo "+ O: $OFFSET L: $LENGTH  $MSG"
       for ((k = 5; k < 5 + "$NB_PROP"; k++))
       do
         PROP=$(echo "$ERRORED_LINE" | cut  -f"$k" -d "|" )
-        echo "  + $PROP" >&2
+        echo "  + $PROP"
       done
 
     done
