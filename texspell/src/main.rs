@@ -5,14 +5,16 @@ use clap::{App, load_yaml};
 mod server;
 use crate::server::Server;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let yaml = load_yaml!("cli.yaml");
     let matches = App::from(yaml).get_matches();
     println!("Hello, world!");
     let s = server::LanguagueToolServer::new("http://localhost:8081");
     let params = [("text", "je suis trè beau"), ("language", "fr")];
-    let resp = s.get_text_checked(&params);
-    s.parse_checked_text(resp.unwrap());
+    println!("A");
+    let resp = s.check(params).await;
+    println!("B");
     //s.get_languages();
     //request_text("url", [(1, 1)]);
 }
