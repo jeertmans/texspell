@@ -1,26 +1,26 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
-use serde_json::Value;
 use async_trait::async_trait;
 use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct Match {
     message: String,
-    value: String,
-    offset: i32,
-    length: i32,
+    word: String,
+    sentence: String,
+    offset: usize,
+    length: usize,
     replacements: Vec<String>,
 }
-
+#[derive(Deserialize, Debug)]
 pub struct LTMatch {
     message: String,
-    value: String,
-    offset: i32,
-    length: i32,
+    sentence: String,
+    offset: usize,
+    length: usize,
     replacements: Vec<HashMap<String, String>>,
 }
-
+#[derive(Deserialize, Debug)]
 pub struct LTResp {
     matches: Vec<LTMatch>
 }
@@ -84,36 +84,30 @@ impl Server for LanguagueToolServer {
     }
 
     async fn parse_checked_text(&self, resp: reqwest::Response) -> Result<Vec<Match>, Box<dyn std::error::Error>> {
-        println!("Inside parde");
-        let map = resp.json::<HashMap<String, Value>>()
+
+        let text = resp.clone().text().await?;
+        let map: LTResp = resp.json::<LTResp>()
             .await?;
 
-        let matches = match map.get("matches").unwrap() {
-            Value::Array(a) => a,
-            _ => return Ok(Vec::new()) // todo: update this
-        };
+        println!("{:#?}", map);
 
-        let result: Vec<Match> = Vec::new();
-            
-        for m in matches {
-            let message = m.get("message").unwrap();
-            let offset = m.get("offset").unwrap();
-            let length = m.get("length").unwrap();
-            let mut replacements: Vec<String> = Vec::new();
-            for r in m["replacements"] {
-                replacements.insert(r["value"]);
-            }
-            result.insert(
-                Match(
-                    message,
-                    offset,
-                    length,
-                    replacements
-                    )
-                );
+        let mut matches: Vec<Match> = Vec::new();
 
+        for m in map.matches {
+            println!("{}", m.sentence);
+            matches.push(
+                Match {
+                    message: m.message,
+                    word: m.sentence.chars().into_iter().skip(m.offset).take(m.length).collect(),
+                    sentence: m.sentence,
+                    offset: m.offset,
+                    length: m.length,
+                    replacements: m.replacements.iter().map(|x| x.get("value").unwrap().to_owned()).collect(),
+                }
+            );
         }
-        Ok(result)
+
+        Ok(matches)
     }
 
 }
