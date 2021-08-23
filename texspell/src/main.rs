@@ -1,4 +1,4 @@
-use clap::{App, load_yaml};
+use clap::{load_yaml, App};
 // In the future:
 // We can generate auto-completion files with: https://docs.rs/clap_generate/3.0.0-beta.2/clap_generate/fn.generate.html
 
@@ -11,7 +11,13 @@ async fn main() {
     let matches = App::from(yaml).get_matches();
     println!("Hello, world!");
     let s = server::LanguagueToolServer::new("http://localhost:8081");
-    let params = [("text", "je suis trè beau et je pense que le jour est arrivée.\n le plus bea truc est là"), ("language", "fr")];
+    let params = [
+        (
+            "text",
+            "je suis trè beau et je pense que le jour est arrivée.\n le plus bea truc est là",
+        ),
+        ("language", "fr"),
+    ];
     println!("A");
     let resp = s.check(params).await;
     match resp {
@@ -19,6 +25,10 @@ async fn main() {
         Err(e) => println!("Error with: {:#?}", e),
     };
     println!("B");
-    //s.get_languages();
+    let resp = s.get_languages().await;
+    match resp {
+        Ok(a) => println!("Ok with: {:#?}", a),
+        Err(e) => println!("Error with: {:#?}", e),
+    };
     //request_text("url", [(1, 1)]);
 }
