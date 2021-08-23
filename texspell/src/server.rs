@@ -7,6 +7,7 @@ use std::error::Error;
 pub struct Match {
     message: String,
     word: String,
+    context: String,
     offset: usize,
     length: usize,
     replacements: Vec<String>,
@@ -35,11 +36,12 @@ pub struct LanguageToolResp {
 
 #[derive(Deserialize, Debug)]
 pub struct Lang {
-    name: String,
-    code: String,
+    pub name: String,
+    pub code: String,
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(non_snake_case)]
 pub struct LanguageToolLang {
     name: String,
     longCode: String,
@@ -121,6 +123,7 @@ impl Server for LanguagueToolServer {
                     .skip(m.context.offset)
                     .take(m.context.length)
                     .collect(),
+                context: m.context.text,
                 offset: m.offset,
                 length: m.length,
                 replacements: m

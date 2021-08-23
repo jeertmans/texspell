@@ -15,21 +15,24 @@ args:
         value_name: STRING
         about: Sets the LanguageTool server address
         takes_value: true
+        default_value: localhost:8081
+    - language:
+        short: l
+        long: lang
+        value_name: STRING
+        about: A language code like en-US or auto to guess the language automatically
+        default_value: en-US
     - INPUT:
         about: Sets the input file to use
-        required: true
+        required: false
         index: 1
     - verbose:
         short: v
         multiple: true
         about: Sets the level of verbosity
 subcommands:
-    - test:
-        about: controls testing features
+    - languages:
+        about: "Lists all supported languages in format `code: name`"
         version: "1.3"
         author: Someone E. <someone_else@other.com>
-        args:
-            - debug:
-                short: d
-                about: print debug information
 
