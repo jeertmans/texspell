@@ -5,12 +5,12 @@ use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct Match {
-    message: String,
-    word: String,
-    context: String,
-    offset: usize,
-    length: usize,
-    replacements: Vec<String>,
+    pub message: String,
+    pub word: String,
+    pub context: String,
+    pub offset: usize,
+    pub length: usize,
+    pub replacements: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
